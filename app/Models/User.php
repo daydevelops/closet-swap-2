@@ -50,4 +50,34 @@ class User extends Authenticatable
     {
         return $this->hasMany(ClothingItem::class);
     }
+
+    public function blocks()
+    {
+        return $this->hasManyThrough(User::class, Block::class, 'blocked_by', 'id', 'id', 'blocked_id');
+    }
+
+    public function block() : void
+    {
+        if (auth()->check()) {
+            Block::create([
+                'blocked_by' => auth()->id(),
+                'blocked_id' => $this->id,
+            ]);
+        }
+    }
+
+    public function unblock() : void
+    {
+        Block::where('blocked_by', auth()->id())
+            ->where('blocked_id', $this->id)
+            ->delete();
+    }
+
+    public function isBlocked() : bool
+    {
+        return Block::where('blocked_by', auth()->id())
+            ->where('blocked_id', $this->id)
+            ->exists();
+    }
+
 }
