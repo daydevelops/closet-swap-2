@@ -20,7 +20,7 @@ test('a user can block another user', function () {
     // when I request a block for another user
     $blockedUser = User::factory()->create();
     $this->assertFalse($blockedUser->isBlocked());
-    $this->post('/block/'.$blockedUser->id);
+    $this->post(route('block',$blockedUser->id));
     // then the other user should be blocked
     $this->assertTrue($blockedUser->isBlocked());
 });
@@ -33,7 +33,7 @@ test('a user can unblock another user', function () {
     $blockedUser = User::factory()->create();
     $blockedUser->block();
     $this->assertTrue($blockedUser->isBlocked());
-    $this->delete('/block/'.$blockedUser->id);
+    $this->delete(route('block',$blockedUser->id));
     // then the other user should be unblocked
     $this->assertFalse($blockedUser->isBlocked());
 });
