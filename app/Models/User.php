@@ -129,4 +129,9 @@ class User extends Authenticatable
         return $this->followers()->where('follower_id', $user->id)->exists();
     }
 
+    public function likes()
+    {
+        return $this->belongsToMany(ClothingItem::class, 'likes');
+    }
+
 }
