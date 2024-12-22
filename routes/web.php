@@ -1,7 +1,8 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\BlockController;
+use App\Http\Controllers\BrowseController;
+use App\Http\Controllers\WantedAdController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -15,7 +16,9 @@ Route::get('/', function () {
     ]);
 });
 
-Route::get('/dashboard', [\App\Http\Controllers\BrowseController::class,'dashboard'])->name('dashboard');
+Route::get('/dashboard', [BrowseController::class,'dashboard'])->name('dashboard');
+
+Route::get('/wanted-ads', [WantedAdController::class,'index'])->name('wanted');
 
 Route::middleware('auth')->group(function () {
     Route::prefix('profile')->group(function () {

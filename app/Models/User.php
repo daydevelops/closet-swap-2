@@ -56,6 +56,18 @@ class User extends Authenticatable
         return $this->hasManyThrough(User::class, Block::class, 'blocked_by', 'id', 'id', 'blocked_id');
     }
 
+    public function blockedBy()
+    {
+        return $this->hasManyThrough(
+            User::class,
+            Block::class,
+            'blocked_id',
+            'id',
+            'id',
+            'blocked_by'
+        );
+    }
+
     public function block() : void
     {
         if (auth()->check()) {

@@ -3,6 +3,7 @@
 use App\Http\Controllers\BlockController;
 use App\Http\Controllers\FollowController;
 use App\Http\Controllers\LikeController;
+use App\Http\Controllers\WantedAdController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->group(function () {
@@ -18,4 +19,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/likes/{clothingItem}', [LikeController::class,'getItemLikes'])->name('likes.item'); // Get all users that have liked a clothing item
     Route::post('/like/{clothingItem}', [LikeController::class,'store'])->name('like'); // Like a clothing item
     Route::delete('/like/{clothingItem}', [LikeController::class,'destroy'])->name('unlike'); // Unlike a clothing item
+
+    Route::prefix('wanted')->group(function () {
+        Route::post('/', [WantedAdController::class,'store'])->name('wanted.store');
+        Route::post('/{wantedAd}', [WantedAdController::class,'update'])->name('wanted.update');
+        Route::delete('/{wantedAd}', [WantedAdController::class,'destroy'])->name('wanted.destroy');
+    });
 });

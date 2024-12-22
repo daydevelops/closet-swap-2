@@ -8,9 +8,9 @@ use Inertia\Inertia;
 
 class BrowseController extends Controller
 {
-    public function dashboard(Request $request)
+    public function dashboard(Request $request) : \Inertia\Response
     {
-        $feed = FeedService::getFeed(
+        $feed = FeedService::getItemFeed(
             $request->query('search') ?? null,
             $request->query('filters') ?? []
         );
