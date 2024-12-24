@@ -18,7 +18,7 @@ Route::get('/', function () {
 
 Route::get('/dashboard', [BrowseController::class,'dashboard'])->name('dashboard');
 
-Route::get('/wanted-ads', [WantedAdController::class,'index'])->name('wanted');
+Route::get('/wanted-ads', [BrowseController::class,'wantedAds'])->name('wanted');
 
 Route::middleware('auth')->group(function () {
     Route::prefix('profile')->group(function () {

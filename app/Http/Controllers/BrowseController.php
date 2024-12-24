@@ -16,4 +16,13 @@ class BrowseController extends Controller
         );
         return Inertia::render('Dashboard',compact('feed'));
     }
+
+    public function wantedAds(Request $request) : \Inertia\Response
+    {
+        $feed = FeedService::getAdsFeed(
+            $request->query('search') ?? null,
+            $request->query('filters') ?? []
+        );
+        return Inertia::render('Wanted',compact('feed'));
+    }
 }

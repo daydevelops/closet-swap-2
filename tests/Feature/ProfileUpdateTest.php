@@ -84,6 +84,3 @@ test('correct password must be provided to delete account', function () {
     $this->assertNotNull($user->fresh());
 });
 
-test('a user can look at another user\'s profile', function () {
-    $this->assertTrue(0);
-});

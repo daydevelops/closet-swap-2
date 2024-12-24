@@ -9,7 +9,9 @@ class FeedService
 {
     public static function getItemFeed($search = null, $filters = []) : \Illuminate\Database\Eloquent\Collection
     {
-        $query = ClothingItem::with('images');
+        $query = ClothingItem::query();
+        $query = self::filterBlocked($query);
+        $query->with('images');
         if ($search) {
             $query->where('name', 'like', "%$search%");
         }
@@ -21,7 +23,8 @@ class FeedService
 
     public static function getAdsFeed($search = null, $filters = []) : \Illuminate\Database\Eloquent\Collection
     {
-        $query = WantedAd::notBlocked();
+        $query = WantedAd::query();
+        $query = self::filterBlocked($query);
         if ($search) {
             $query->where('title', 'like', "%$search%");
         }
@@ -29,5 +32,10 @@ class FeedService
             $query->where($key, $value);
         }
         return $query->get();
+    }
+
+    private static function filterBlocked($query) : \Illuminate\Database\Eloquent\Builder
+    {
+        return auth()->check() ? $query->notBlocked() : $query;
     }
 }
