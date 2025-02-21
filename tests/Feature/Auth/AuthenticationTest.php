@@ -1,41 +1,75 @@
 <?php
 
+namespace Tests\Feature\Auth;
+
 use App\Models\User;
+use Laravel\Sanctum\Sanctum;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Testing\Fluent\AssertableJson;
 
-test('login screen can be rendered', function () {
-    $response = $this->get('/login');
-
-    $response->assertStatus(200);
-});
-
-test('users can authenticate using the login screen', function () {
-    $user = User::factory()->create();
-
-    $response = $this->post('/login', [
-        'email' => $user->email,
-        'password' => 'password',
+it('can login with valid credentials', function () {
+    // Arrange: Create a user
+    $user = User::factory()->create([
+        'password' => Hash::make('password123')
     ]);
 
-    $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
-});
-
-test('users can not authenticate with invalid password', function () {
-    $user = User::factory()->create();
-
-    $this->post('/login', [
+    // Act: Send login request
+    $response = $this->postJson('/api/login', [
         'email' => $user->email,
-        'password' => 'wrong-password',
+        'password' => 'password123',
     ]);
 
-    $this->assertGuest();
+    // Assert: Response contains the token
+    $response->assertStatus(200)
+        ->assertJson(fn (AssertableJson $json) =>
+        $json->has('access_token')
+            ->where('token_type', 'Bearer')
+        );
 });
 
-test('users can logout', function () {
-    $user = User::factory()->create();
+it('cannot login with invalid credentials', function () {
+    // Arrange: Create a user
+    $user = User::factory()->create([
+        'password' => Hash::make('password123')
+    ]);
 
-    $response = $this->actingAs($user)->post('/logout');
+    // Act: Send login request with wrong password
+    $response = $this->postJson('/api/login', [
+        'email' => $user->email,
+        'password' => 'wrongpassword',
+    ]);
 
-    $this->assertGuest();
-    $response->assertRedirect('/');
+    // Assert: Expect 401 unauthorized status and error message
+    $response->assertStatus(401)
+        ->assertJson([
+            'message' => 'Invalid credentials'
+        ]);
+});
+
+it('can logout a logged-in user', function () {
+    // Arrange: Create a user and log them in
+    $user = User::factory()->create([
+        'password' => Hash::make('password123')
+    ]);
+    Sanctum::actingAs($user);
+
+    // Act: Send logout request
+    $response = $this->postJson('/api/logout');
+
+    // Assert: Response indicates successful logout
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'Logged out successfully'
+        ]);
+});
+
+it('cannot logout if not authenticated', function () {
+    // Act: Send logout request without authentication
+    $response = $this->postJson('/api/logout');
+
+    // Assert: Expect 401 Unauthorized status
+    $response->assertStatus(401)
+        ->assertJson([
+            'message' => 'Unauthenticated.'
+        ]);
 });

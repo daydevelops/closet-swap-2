@@ -4,9 +4,35 @@ use App\Http\Controllers\BlockController;
 use App\Http\Controllers\FollowController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\WantedAdController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\Auth\PasswordForgotController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\BrowseController;
+
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth')->group(function () {
+Route::post('/register', [RegisterController::class, 'register'])->name('register');
+Route::post('/login', [LoginController::class, 'login'])->name('login');
+Route::post('/password/email', [PasswordForgotController::class, 'sendResetLinkEmail'])->name('password.email');
+
+Route::get('/dashboard', [BrowseController::class,'dashboard'])->name('dashboard');
+Route::get('/wanted-ads', [BrowseController::class,'wantedAds'])->name('wanted');
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    Route::post('/password/change', [PasswordResetController::class, 'changePassword']);
+    Route::post('/password/reset', [PasswordResetController::class, 'resetPassword'])->name('password.reset');
+
+    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+    Route::prefix('profile')->group(function () {
+        Route::get('/{user}', [ProfileController::class, 'show'])->name('profile.show');
+        Route::patch('/', [ProfileController::class, 'update'])->name('profile.update');
+        Route::delete('/', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    });
+
     Route::post('/block/{user}', [BlockController::class,'store'])->name('block');
     Route::delete('/block/{user}', [BlockController::class,'destroy'])->name('block.destroy');
 

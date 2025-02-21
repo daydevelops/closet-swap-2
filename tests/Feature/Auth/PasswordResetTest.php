@@ -1,60 +1,74 @@
 <?php
 
+namespace Tests\Feature;
+
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 
-test('reset password link screen can be rendered', function () {
-    $response = $this->get('/forgot-password');
+it('can change password for authenticated user with correct current password', function () {
+    // Arrange: Create an authenticated user
+    $user = User::factory()->create([
+        'password' => Hash::make('currentPassword123'), // Set the initial password
+    ]);
 
-    $response->assertStatus(200);
+    // Act: Authenticate the user via Sanctum and attempt to change password
+    $response = $this->actingAs($user)->postJson('/api/password/change', [
+        'current_password' => 'currentPassword123',
+        'new_password' => 'newPassword123',
+        'new_password_confirmation' => 'newPassword123',
+    ]);
+
+    // Assert: Check if the password was updated successfully
+    $response->assertStatus(200)
+        ->assertJson(['message' => 'Password changed successfully.']);
+
+    // Verify if the password has been updated in the database
+    $user->refresh();
+    expect(Hash::check('newPassword123', $user->password))->toBeTrue();
 });
 
-test('reset password link can be requested', function () {
-    Notification::fake();
+it('cannot change password for authenticated user with incorrect current password', function () {
+    // Arrange: Create an authenticated user
+    $user = User::factory()->create([
+        'password' => Hash::make('currentPassword123'),
+    ]);
 
-    $user = User::factory()->create();
+    // Act: Authenticate the user via Sanctum and attempt to change password with wrong current password
+    $response = $this->actingAs($user)->postJson('/api/password/change', [
+        'current_password' => 'wrongPassword123',
+        'new_password' => 'newPassword123',
+        'new_password_confirmation' => 'newPassword123',
+    ]);
 
-    $this->post('/forgot-password', ['email' => $user->email]);
-
-    Notification::assertSentTo($user, ResetPassword::class);
+    // Assert: Ensure the response indicates the current password is incorrect
+    $response->assertStatus(400)
+        ->assertJson(['message' => 'Current password is incorrect.']);
 });
 
-test('reset password screen can be rendered', function () {
-    Notification::fake();
+it('can send a password reset link for a guest with valid email', function () {
+    // Arrange: Create a user for testing (email must exist for validation)
+    $user = User::factory()->create([
+        'email' => 'user@example.com',
+    ]);
 
-    $user = User::factory()->create();
+    // Act: Send a POST request to request a password reset link
+    $response = $this->postJson(route('password.email'), [
+        'email' => 'user@example.com',
+    ]);
 
-    $this->post('/forgot-password', ['email' => $user->email]);
-
-    Notification::assertSentTo($user, ResetPassword::class, function ($notification) {
-        $response = $this->get('/reset-password/'.$notification->token);
-
-        $response->assertStatus(200);
-
-        return true;
-    });
+    // Assert: Ensure the reset link was sent successfully
+    $response->assertStatus(200)
+        ->assertJson(['message' => trans(Password::RESET_LINK_SENT)]);
 });
 
-test('password can be reset with valid token', function () {
-    Notification::fake();
+it('cannot send a password reset link for a guest with invalid email', function () {
+    // Act: Send a POST request with a non-existing email
+    $response = $this->postJson(route('password.email'), [
+        'email' => 'nonexistent@example.com',
+    ]);
 
-    $user = User::factory()->create();
-
-    $this->post('/forgot-password', ['email' => $user->email]);
-
-    Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
-        $response = $this->post('/reset-password', [
-            'token' => $notification->token,
-            'email' => $user->email,
-            'password' => 'password',
-            'password_confirmation' => 'password',
-        ]);
-
-        $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('login'));
-
-        return true;
-    });
+    // Assert: Ensure the response indicates no failure
+    $response->assertStatus(200)
+        ->assertJson(['message' => trans(Password::RESET_LINK_SENT)]);
 });
