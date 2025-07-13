@@ -19,7 +19,6 @@ services:
     depends_on:
       - db
       - redis
-      - node
 
   web:
     image: nginx:alpine
