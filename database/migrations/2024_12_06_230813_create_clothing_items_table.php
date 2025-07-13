@@ -13,10 +13,16 @@ return new class extends Migration
     {
         Schema::create('clothing_items', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('title');
             $table->string('description');
-            $table->string('status');
+            $table->string('brand');
+            $table->foreignId('gender_id')->constrained();
+            $table->foreignId('size_id')->constrained();
+            $table->foreignId('units_id')->constrained();
+            $table->foreignId('fit_id')->constrained();
+            $table->foreignId('condition_id')->constrained();
             $table->foreignId('user_id')->constrained();
+            $table->string('status');
             $table->timestamps();
         });
     }
