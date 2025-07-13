@@ -16,11 +16,12 @@ return new class extends Migration
             $table->string('title');
             $table->string('description');
             $table->string('brand');
-            $table->foreignId('gender_id')->constrained();
-            $table->foreignId('size_id')->constrained();
-            $table->foreignId('units_id')->constrained();
-            $table->foreignId('fit_id')->constrained();
-            $table->foreignId('condition_id')->constrained();
+            $table->foreignId('ci_type_id')->constrained();
+            $table->foreignId('ci_gender_id')->constrained();
+            $table->foreignId('ci_size_id')->constrained();
+            $table->foreignId('ci_units_id')->constrained();
+            $table->foreignId('ci_fit_id')->constrained();
+            $table->foreignId('ci_condition_id')->constrained();
             $table->foreignId('user_id')->constrained();
             $table->string('status');
             $table->timestamps();

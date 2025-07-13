@@ -12,24 +12,24 @@ return new class extends Migration
     public function up(): void
     {
 
-        Schema::create('tags_items', function (Blueprint $table) {
+        Schema::create('ci_tag_item', function (Blueprint $table) {
             $table->id();
             $table->foreignId('clothing_item_id')->constrained()->onDelete('cascade');
-            $table->foreignId('tag_id')->constrained()->onDelete('cascade');
+            $table->foreignId('ci_tag_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
 
-        Schema::create('materials_items', function (Blueprint $table) {
+        Schema::create('ci_material_item', function (Blueprint $table) {
             $table->id();
             $table->foreignId('clothing_item_id')->constrained()->onDelete('cascade');
-            $table->foreignId('material_id')->constrained()->onDelete('cascade');
+            $table->foreignId('ci_material_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
 
-        Schema::create('colors_items', function (Blueprint $table) {
+        Schema::create('ci_color_item', function (Blueprint $table) {
             $table->id();
             $table->foreignId('clothing_item_id')->constrained()->onDelete('cascade');
-            $table->foreignId('color_id')->constrained()->onDelete('cascade');
+            $table->foreignId('ci_color_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }

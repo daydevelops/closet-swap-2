@@ -21,7 +21,7 @@ Route::post('/password/email', [PasswordForgotController::class, 'sendResetLinkE
 Route::get('/dashboard', [BrowseController::class,'dashboard'])->name('dashboard');
 Route::get('/wanted-ads', [BrowseController::class,'wantedAds'])->name('wanted');
 
-Route::get('/items/getOptions', [ClothingItemController::class, 'options'])->name('items.options');
+Route::get('/items/getOptions', [ClothingItemController::class, 'create'])->name('items.create');
 
 Route::middleware('auth:sanctum')->group(function () {
 

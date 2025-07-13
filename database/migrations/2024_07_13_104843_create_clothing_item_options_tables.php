@@ -11,49 +11,55 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('genders', function (Blueprint $table) {
+        Schema::create('ci_types', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
             $table->timestamps();
         });
 
-        Schema::create('sizes', function (Blueprint $table) {
+        Schema::create('ci_genders', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
             $table->timestamps();
         });
 
-        Schema::create('units', function (Blueprint $table) {
+        Schema::create('ci_sizes', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
             $table->timestamps();
         });
 
-        Schema::create('fits', function (Blueprint $table) {
+        Schema::create('ci_units', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
             $table->timestamps();
         });
 
-        Schema::create('conditions', function (Blueprint $table) {
+        Schema::create('ci_fits', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
             $table->timestamps();
         });
 
-        Schema::create('tags', function (Blueprint $table) {
+        Schema::create('ci_conditions', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
             $table->timestamps();
         });
 
-        Schema::create('materials', function (Blueprint $table) {
+        Schema::create('ci_tags', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
             $table->timestamps();
         });
 
-        Schema::create('colors', function (Blueprint $table) {
+        Schema::create('ci_materials', function (Blueprint $table) {
+            $table->id();
+            $table->string('name')->unique();
+            $table->timestamps();
+        });
+
+        Schema::create('ci_colors', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
             $table->timestamps();
@@ -65,13 +71,14 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('genders');
-        Schema::dropIfExists('sizes');
-        Schema::dropIfExists('units');
-        Schema::dropIfExists('fits');
-        Schema::dropIfExists('conditions');
-        Schema::dropIfExists('tags');
-        Schema::dropIfExists('materials');
-        Schema::dropIfExists('colors');
+        Schema::dropIfExists('ci_types');
+        Schema::dropIfExists('ci_genders');
+        Schema::dropIfExists('ci_sizes');
+        Schema::dropIfExists('ci_units');
+        Schema::dropIfExists('ci_fits');
+        Schema::dropIfExists('ci_conditions');
+        Schema::dropIfExists('ci_tags');
+        Schema::dropIfExists('ci_materials');
+        Schema::dropIfExists('ci_colors');
     }
 };
