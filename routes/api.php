@@ -10,6 +10,7 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\PasswordForgotController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\BrowseController;
+use App\Http\Controllers\ClothingItemController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,8 @@ Route::post('/password/email', [PasswordForgotController::class, 'sendResetLinkE
 
 Route::get('/dashboard', [BrowseController::class,'dashboard'])->name('dashboard');
 Route::get('/wanted-ads', [BrowseController::class,'wantedAds'])->name('wanted');
+
+Route::get('/items/getOptions', [ClothingItemController::class, 'options'])->name('items.options');
 
 Route::middleware('auth:sanctum')->group(function () {
 

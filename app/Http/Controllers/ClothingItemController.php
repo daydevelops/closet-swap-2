@@ -63,4 +63,25 @@ class ClothingItemController extends Controller
     {
         //
     }
+
+    /**
+     * Get options for clothing items.
+     */
+    public function options()
+    {
+        // This method should return options for clothing items, such as categories, sizes, etc.
+        // Implement the logic to fetch and return the options.
+        return response()->json([
+            'types' => ['T-Shirts', 'Jeans', 'Jackets', 'Shoes'],
+            'sizes' => ['XS', 'S', 'M', 'L', 'XL'],
+            "fits" => ['true to size', 'slim fit', 'regular fit', 'oversized'],
+            "conditions" => ['new', 'like new', 'used', 'vintage'],
+            "units" => ['in width', 'in length', 'in height', 'US', 'EU'],
+            "tags" => ['casual', 'formal', 'sportswear', 'vintage', 'streetwear'],
+            "colors" => ['red', 'blue', 'green', 'yellow', 'black', 'white'],
+            "materials" => ['cotton', 'wool', 'leather', 'polyester', 'silk'],
+            "genders" => ['masc', 'fem', 'unisex'],
+        ], 200);
+
+    }
 }
