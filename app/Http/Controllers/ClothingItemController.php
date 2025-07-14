@@ -5,23 +5,33 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreClothingItemRequest;
 use App\Http\Requests\UpdateClothingItemRequest;
 use App\Models\ClothingItem;
+use App\Models\CiType;
+use App\Models\CiSize;
+use App\Models\CiFit;
+use App\Models\CiCondition;
+use App\Models\CiUnit;
+use App\Models\CiTags;
+use App\Models\CiColors;
+use App\Models\CiMaterial;
+use App\Models\CiGender;
+use App\Services\ImageService;
+use Illuminate\Support\Facades\Storage;
 
 class ClothingItemController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+        return response()->json([
+            'types' => CiType::select('id','name')->get(),
+            'sizes' => CiSize::select('id','name')->get(),
+            'fits' => CiFit::select('id','name')->get(),
+            'conditions' => CiCondition::select('id','name')->get(),
+            'units' => CiUnit::select('id','name')->get(),
+            'genders' => CiGender::select('id','name')->get(),
+            'tags' => CiTags::pluck('name')->toArray(),
+            'colors' => CiColors::pluck('name')->toArray(),
+            'materials' => CiMaterial::pluck('name')->toArray(),
+        ], 200);
     }
 
     /**
@@ -29,7 +39,37 @@ class ClothingItemController extends Controller
      */
     public function store(StoreClothingItemRequest $request)
     {
-        //
+        $item = ClothingItem::create([
+            'title' => $request->title,
+            'description' => $request->description,
+            'ci_type_id' => $request->type,
+            'ci_gender_id' => $request->gender,
+            'ci_size_id' => $request->size,
+            'ci_fit_id' => $request->fit,
+            'ci_condition_id' => $request->condition,
+            'ci_units_id' => $request->units,
+            'brand' => $request->brand,
+            'materials' => $request->materials,
+            'colors' => $request->colors,
+            'tags' => $request->tags,
+            'user_id' => $request->user()->id,
+            'status' => 'available',
+        ]);
+        if ($request->hasFile('pictures')) {
+            $image_service = new ImageService();
+            foreach ($request->file('pictures') as $file) {
+                $path = $image_service->upload($file);
+                if ($path) {
+                    $item->images()->create(['image_url' => $path]);
+                } else {
+                    return response()->json(['message' => 'Image upload failed'], 500);
+                }
+            }
+        }
+        return response()->json([
+            'message' => 'Clothing item created successfully',
+            'id' => $item->id,
+        ], 201);
     }
 
     /**
@@ -62,26 +102,5 @@ class ClothingItemController extends Controller
     public function destroy(ClothingItem $clothingItem)
     {
         //
-    }
-
-    /**
-     * Get options for clothing items.
-     */
-    public function options()
-    {
-        // This method should return options for clothing items, such as categories, sizes, etc.
-        // Implement the logic to fetch and return the options.
-        return response()->json([
-            'types' => ['T-Shirts', 'Jeans', 'Jackets', 'Shoes'],
-            'sizes' => ['XS', 'S', 'M', 'L', 'XL'],
-            "fits" => ['true to size', 'slim fit', 'regular fit', 'oversized'],
-            "conditions" => ['new', 'like new', 'used', 'vintage'],
-            "units" => ['in width', 'in length', 'in height', 'US', 'EU'],
-            "tags" => ['casual', 'formal', 'sportswear', 'vintage', 'streetwear'],
-            "colors" => ['red', 'blue', 'green', 'yellow', 'black', 'white'],
-            "materials" => ['cotton', 'wool', 'leather', 'polyester', 'silk'],
-            "genders" => ['masc', 'fem', 'unisex'],
-        ], 200);
-
     }
 }

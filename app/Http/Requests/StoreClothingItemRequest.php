@@ -11,7 +11,7 @@ class StoreClothingItemRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -22,7 +22,19 @@ class StoreClothingItemRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'title' => 'required|string|max:140',
+            'description' => 'required|string|max:1000',
+            'type' => 'required|exists:ci_types,id',
+            'size' => 'required|exists:ci_sizes,id',
+            'fit' => 'required|exists:ci_fits,id',
+            'condition' => 'required|exists:ci_conditions,id',
+            'units' => 'nullable|exists:ci_units,id',
+            'tags' => 'array',
+            'colors' => 'array',
+            'materials' => 'array',
+
+            'pictures' => 'required|array|min:1',
+            'pictures.*' => 'file|mimes:jpg,jpeg,png,PNG,webp|max:5120', // max is in kilobytes = 5MB
         ];
     }
 }

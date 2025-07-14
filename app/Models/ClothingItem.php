@@ -14,6 +14,12 @@ class ClothingItem extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'materials' => 'array',
+        'colors' => 'array',
+        'tags' => 'array',
+    ];
+
     public function images()
     {
         return $this->hasMany(ClothingItemImage::class);
@@ -27,11 +33,6 @@ class ClothingItem extends Model
     public function likes()
     {
         return $this->belongsToMany(User::class, 'likes');
-    }
-
-    public function tags()
-    {
-        return $this->belongsToMany(CiTags::class, 'ci_tag_item', 'clothing_item_id', 'ci_tag_id');
     }
 
     public function colors()

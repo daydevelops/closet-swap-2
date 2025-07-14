@@ -22,6 +22,9 @@ return new class extends Migration
             $table->foreignId('ci_units_id')->constrained();
             $table->foreignId('ci_fit_id')->constrained();
             $table->foreignId('ci_condition_id')->constrained();
+            $table->json('tags')->nullable();
+            $table->json('materials')->nullable();
+            $table->json('colors')->nullable();
             $table->foreignId('user_id')->constrained();
             $table->string('status');
             $table->timestamps();

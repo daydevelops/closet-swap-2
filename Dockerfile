@@ -19,7 +19,8 @@ RUN wget https://github.com/jwilder/dockerize/releases/download/v0.6.1/dockerize
     && rm dockerize-linux-amd64-v0.6.1.tar.gz
 
 # Install PHP extensions
-RUN docker-php-ext-install pdo_mysql exif pcntl bcmath gd
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo_mysql exif pcntl bcmath gd
 
 # Install Composer
 COPY --from=composer:2.5 /usr/bin/composer /usr/bin/composer
