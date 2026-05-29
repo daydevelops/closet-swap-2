@@ -18,7 +18,7 @@ class ClothingItemImageFactory extends Factory
     {
         return [
             'clothing_item_id' => \App\Models\ClothingItem::factory(),
-            'image_url' => $this->faker->imageUrl(),
+            'path' => 'items/test-' . $this->faker->uuid() . '.jpg',
         ];
     }
 }

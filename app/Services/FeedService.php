@@ -13,7 +13,7 @@ class FeedService
         $query = self::filterBlocked($query);
         $query->with('images');
         if ($search) {
-            $query->where('name', 'like', "%$search%");
+            $query->where('title', 'like', "%$search%");
         }
         foreach ($filters as $key => $value) {
             $query->where($key, $value);
