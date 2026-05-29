@@ -1,0 +1,106 @@
+<?php
+
+use App\Models\CiType;
+use App\Models\User;
+use Database\Factories\ClothingItemFactory;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+
+return new class extends Migration
+{
+    private array $adjectives = [
+        'Vintage', 'Oversized', 'Cropped', 'Distressed', 'Ribbed',
+        'Floral', 'Striped', 'Checked', 'Pleated', 'Quilted',
+        'Sheer', 'Flowy', 'Structured', 'Faded', 'Patchwork',
+        'Lace-trim', 'Washed', 'Slim-fit', 'Asymmetric', 'Embroidered',
+    ];
+
+    private array $brands = [
+        "Levi's", 'Zara', 'H&M', 'Cos', 'Arket', 'Mango', 'Uniqlo',
+        'Weekday', '& Other Stories', 'Free People', 'Reformation',
+        'Urban Outfitters', 'Topshop', 'Pull&Bear', 'Bershka',
+        'Stradivarius', 'Monki', 'Gap', 'Everlane', 'ASOS',
+        'Thrifted', 'Vintage Find', 'Charity Shop', 'Handmade', 'No Brand',
+    ];
+
+    private array $descriptions = [
+        'A great piece in excellent condition. Barely worn, just not my style anymore.',
+        'Picked this up last season but it never really suited me. Perfect for someone who loves this aesthetic.',
+        'Super comfortable and well-made. Has been loved but still has so much life left.',
+        'One of my favourite pieces but I\'m having a clear-out. Would love to see it go to a good home.',
+        'Fits true to size. Great quality fabric, no pilling or damage.',
+        'Bought for a specific occasion and only worn once. Still looks brand new.',
+        'A wardrobe staple I\'m letting go to make room for new things.',
+        'Really unique piece — hard to find elsewhere. Selling because I\'ve moved on from this style.',
+        'Worn a handful of times, washed carefully. No signs of wear.',
+        'Perfect layering piece. Suits so many outfits.',
+        'Absolute gem from a charity shop find. Outgrown it now.',
+        'I loved this so much but I just don\'t reach for it anymore. Time to pass it on.',
+        'Great condition, no stains, holes, or damage. Smoke-free home.',
+        'Size runs a little large — fits more like the next size up.',
+        'Selling as part of a wardrobe refresh. Too good to throw away.',
+    ];
+
+    public function up(): void
+    {
+        // Pre-load type names once to use in titles
+        $typeNames = CiType::pluck('name', 'id')->toArray();
+
+        for ($i = 1; $i <= 20; $i++) {
+            $user = User::factory()->create([
+                'email' => "demo.{$i}@demo.test",
+            ]);
+
+            $itemCount = rand(0, 30);
+
+            for ($j = 0; $j < $itemCount; $j++) {
+                $typeId   = array_rand($typeNames);
+                $typeName = $typeNames[$typeId];
+                $adj      = $this->adjectives[array_rand($this->adjectives)];
+
+                ClothingItemFactory::new()->create([
+                    'user_id'     => $user->id,
+                    'title'       => "{$adj} {$typeName}",
+                    'description' => $this->descriptions[array_rand($this->descriptions)],
+                    'brand'       => $this->brands[array_rand($this->brands)],
+                    'ci_type_id'  => $typeId,
+                    'status'      => $this->randomStatus(),
+                ]);
+            }
+        }
+    }
+
+    public function down(): void
+    {
+        $userIds = DB::table('users')
+            ->where('email', 'like', '%@demo.test')
+            ->pluck('id')
+            ->toArray();
+
+        if (empty($userIds)) return;
+
+        $itemIds = DB::table('clothing_items')
+            ->whereIn('user_id', $userIds)
+            ->pluck('id')
+            ->toArray();
+
+        if (!empty($itemIds)) {
+            DB::table('ci_color_item')->whereIn('clothing_item_id', $itemIds)->delete();
+            DB::table('ci_material_item')->whereIn('clothing_item_id', $itemIds)->delete();
+            DB::table('ci_tag_item')->whereIn('clothing_item_id', $itemIds)->delete();
+            DB::table('clothing_items')->whereIn('id', $itemIds)->delete();
+        }
+
+        DB::table('users')->whereIn('id', $userIds)->delete();
+    }
+
+    private function randomStatus(): string
+    {
+        $roll = rand(1, 10);
+        return match (true) {
+            $roll <= 7  => 'available',
+            $roll <= 9  => 'sold',
+            default     => 'donated',
+        };
+    }
+};

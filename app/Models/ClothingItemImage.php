@@ -12,7 +12,7 @@ class ClothingItemImage extends Model
 
     protected $fillable = [
         'clothing_item_id',
-        'image_url',
+        'path',
     ];
 
     public function clothingItem()

@@ -57,7 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('items')->group(function () {
         Route::post('/', [ClothingItemController::class, 'store'])->name('items.store');
-//        Route::get('/{clothingItem}', [ClothingItemController::class, 'show'])->name('items.show');
+        Route::get('/{clothingItem}', [ClothingItemController::class, 'show'])->name('items.show');
 //        Route::patch('/{clothingItem}', [ClothingItemController::class, 'update'])->name('items.update');
 //        Route::delete('/{clothingItem}', [ClothingItemController::class, 'destroy'])->name('items.destroy');
     });

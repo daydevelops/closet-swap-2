@@ -14,11 +14,7 @@ class ClothingItem extends Model
 
     protected $guarded = [];
 
-    protected $casts = [
-        'materials' => 'array',
-        'colors' => 'array',
-        'tags' => 'array',
-    ];
+    protected $casts = [];
 
     public function images()
     {
@@ -43,6 +39,11 @@ class ClothingItem extends Model
     public function materials()
     {
         return $this->belongsToMany(CiMaterial::class, 'ci_material_item', 'clothing_item_id', 'ci_material_id');
+    }
+
+    public function tags()
+    {
+        return $this->belongsToMany(CiTags::class, 'ci_tag_item', 'clothing_item_id', 'ci_tag_id');
     }
 
     public function type()

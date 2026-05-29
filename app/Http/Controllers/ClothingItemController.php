@@ -60,7 +60,7 @@ class ClothingItemController extends Controller
             foreach ($request->file('pictures') as $file) {
                 $path = $image_service->upload($file);
                 if ($path) {
-                    $item->images()->create(['image_url' => $path]);
+                    $item->images()->create(['path' => $path]);
                 } else {
                     return response()->json(['message' => 'Image upload failed'], 500);
                 }
@@ -77,7 +77,20 @@ class ClothingItemController extends Controller
      */
     public function show(ClothingItem $clothingItem)
     {
-        //
+        $item = $clothingItem->load(['images', 'type', 'size', 'fit', 'condition', 'units', 'gender']);
+        $images = $item->images->map(function($image) {
+            return [
+                'id' => $image->id,
+                'signed_url' => Storage::disk('s3')->temporaryUrl(
+                    $image->path,
+                    now()->addMinutes(10)
+                ),
+            ];
+        });
+        return response()->json([
+            'images' => $images,
+            'item' => $item
+        ], 201);
     }
 
     /**
