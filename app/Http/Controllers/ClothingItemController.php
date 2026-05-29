@@ -90,7 +90,7 @@ class ClothingItemController extends Controller
         return response()->json([
             'images' => $images,
             'item' => $item
-        ], 201);
+        ], 200);
     }
 
     /**
