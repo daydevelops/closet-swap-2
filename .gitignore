@@ -23,3 +23,5 @@ yarn-error.log
 /.zed
 CLAUDE.md
 closet-swap-mvp-plan.csv
+.DS_Store
+**/.DS_Store
