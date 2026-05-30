@@ -12,7 +12,11 @@ class ProfileController extends Controller
 {
     public function show(User $user) : JsonResponse
     {
-        return response()->json($user);
+        $data = $user->toArray();
+        if (auth()->check()) {
+            $data['is_following'] = auth()->user()->isFollowing($user);
+        }
+        return response()->json($data);
     }
 
     /**
