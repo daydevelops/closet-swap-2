@@ -63,3 +63,5 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{clothingItem}', [ClothingItemController::class, 'destroy'])->name('items.destroy');
     });
 });
+
+Route::fallback(fn () => response()->json(['message' => 'Not found.'], 404));
