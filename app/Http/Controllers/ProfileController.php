@@ -12,10 +12,24 @@ class ProfileController extends Controller
 {
     public function show(User $user) : JsonResponse
     {
-        $data = $user->toArray();
+        $isOwn = auth()->id() === $user->id;
+
+        if ($isOwn) {
+            // Return full profile data to the owner only
+            return response()->json($user->toArray());
+        }
+
+        // Return only public-safe fields to anyone else
+        $data = [
+            'name'       => $user->name,
+            'bio'        => $user->bio,
+            'avatar_url' => $user->avatar_url,
+        ];
+
         if (auth()->check()) {
             $data['is_following'] = auth()->user()->isFollowing($user);
         }
+
         return response()->json($data);
     }
 
