@@ -15,7 +15,6 @@ use App\Models\CiColors;
 use App\Models\CiMaterial;
 use App\Models\CiGender;
 use App\Services\ImageService;
-use Illuminate\Support\Facades\Storage;
 
 class ClothingItemController extends Controller
 {
@@ -78,15 +77,7 @@ class ClothingItemController extends Controller
     public function show(ClothingItem $clothingItem)
     {
         $item = $clothingItem->load(['images', 'type', 'size', 'fit', 'condition', 'units', 'gender']);
-        $images = $item->images->map(function($image) {
-            return [
-                'id' => $image->id,
-                'signed_url' => Storage::disk('s3')->temporaryUrl(
-                    $image->path,
-                    now()->addMinutes(10)
-                ),
-            ];
-        });
+        $images = ImageService::signedUrls($item->images);
         return response()->json([
             'images' => $images,
             'item' => $item
