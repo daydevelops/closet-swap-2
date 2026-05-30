@@ -144,7 +144,7 @@ class User extends Authenticatable
 
     public function likes()
     {
-        return $this->belongsToMany(ClothingItem::class, 'likes');
+        return $this->belongsToMany(ClothingItem::class, 'likes')->withTimestamps();
     }
 
 }

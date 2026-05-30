@@ -46,11 +46,16 @@ test('a user can like a clothing item', function () {
     $response = $this->post(route('like',$clothingItem));
     // then I should see a message that the clothing item was liked
     $response->assertJson(['message' => 'Clothing item liked']);
-    // and the clothing item should be liked
+    // and the clothing item should be liked with timestamps
     $this->assertDatabaseHas('likes', [
         'clothing_item_id' => $clothingItem->id,
         'user_id' => $this->user->id,
     ]);
+    $like = \Illuminate\Support\Facades\DB::table('likes')
+        ->where('clothing_item_id', $clothingItem->id)
+        ->where('user_id', $this->user->id)
+        ->first();
+    $this->assertNotNull($like->created_at);
 });
 
 test('a user can unlike a clothing item', function () {
