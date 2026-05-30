@@ -22,7 +22,6 @@ function validItemPayload(): array
         'type'        => CiType::first()->id,
         'gender'      => CiGender::first()->id,
         'size'        => CiSize::first()->id,
-        'units'       => CiUnit::first()->id,
         'fit'         => CiFit::first()->id,
         'condition'   => CiCondition::first()->id,
         'brand'       => 'Zara',
@@ -46,6 +45,24 @@ test('a user can create a clothing item', function () {
         'title'   => 'Test Jacket',
         'brand'   => 'Zara',
         'user_id' => $user->id,
+    ]);
+});
+
+test('a user can create a clothing item with units', function () {
+    Storage::fake('s3');
+
+    $user = User::factory()->create();
+    $unit = CiUnit::first();
+
+    $response = $this->actingAs($user)->postJson(route('items.store'), array_merge(validItemPayload(), [
+        'units' => $unit->id,
+    ]));
+
+    $response->assertStatus(201);
+    $this->assertDatabaseHas('clothing_items', [
+        'title'        => 'Test Jacket',
+        'user_id'      => $user->id,
+        'ci_units_id'  => $unit->id,
     ]);
 });
 
