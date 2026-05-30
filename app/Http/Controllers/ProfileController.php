@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\ClothingItem;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,6 +32,17 @@ class ProfileController extends Controller
         }
 
         return response()->json($data);
+    }
+
+    public function items(User $user): JsonResponse
+    {
+        $query = ClothingItem::where('user_id', $user->id)->with('images');
+
+        if (auth()->check()) {
+            $query->notBlocked();
+        }
+
+        return response()->json($query->get());
     }
 
     /**

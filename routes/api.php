@@ -32,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('profile')->group(function () {
         Route::get('/{user}', [ProfileController::class, 'show'])->name('profile.show');
+        Route::get('/{user}/items', [ProfileController::class, 'items'])->name('profile.items');
         Route::patch('/', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/', [ProfileController::class, 'destroy'])->name('profile.destroy');
     });

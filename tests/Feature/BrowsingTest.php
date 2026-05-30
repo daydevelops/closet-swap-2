@@ -75,6 +75,31 @@ test('a user can search for other users', function () {
 
 });
 
-test('a user can not see a user\'s profile if they are blocked', function () {
+test('a user can not see a user\'s profile items if they are blocked', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
 
+    $blockedUser = User::factory()->create();
+    $item = ClothingItem::factory()->create(['user_id' => $blockedUser->id]);
+    $blockedUser->block();
+
+    $response = $this->getJson(route('profile.items', $blockedUser));
+    $response->assertOk();
+    $responseIds = collect($response->json())->pluck('id')->toArray();
+    $this->assertNotContains($item->id, $responseIds);
+});
+
+test('a user only sees items belonging to the viewed user on their profile', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $profileUser  = User::factory()->create();
+    $profileItem  = ClothingItem::factory()->create(['user_id' => $profileUser->id]);
+    $otherItem    = ClothingItem::factory()->create(); // belongs to a different user
+
+    $response = $this->getJson(route('profile.items', $profileUser));
+    $response->assertOk();
+    $responseIds = collect($response->json())->pluck('id')->toArray();
+    $this->assertContains($profileItem->id, $responseIds);
+    $this->assertNotContains($otherItem->id, $responseIds);
 });
