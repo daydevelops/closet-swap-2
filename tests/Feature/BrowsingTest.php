@@ -31,7 +31,31 @@ test('home page is displayed with search results', function () {
 });
 
 test('home page is displayed with filter results', function () {
+    $uniqueBrand = 'BrandFilter-' . uniqid();
+    $matchingItem = \App\Models\ClothingItem::factory()->create(['brand' => $uniqueBrand, 'status' => 'available']);
+    $otherItem    = \App\Models\ClothingItem::factory()->create(['brand' => 'OtherBrand', 'status' => 'available']);
 
+    $response = $this->get(route('dashboard', ['filters' => ['brand' => $uniqueBrand]]));
+    $response->assertOk();
+    $responseIds = collect($response->json())->pluck('id')->toArray();
+
+    // The matching item should appear
+    $this->assertContains($matchingItem->id, $responseIds);
+    // The other item should not appear
+    $this->assertNotContains($otherItem->id, $responseIds);
+});
+
+test('disallowed filter keys are ignored', function () {
+    $user = \App\Models\User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+
+    // Filter on user_id (not in allowlist) — should be ignored, item must still appear
+    $otherUser = \App\Models\User::factory()->create();
+    $response  = $this->get(route('dashboard', ['filters' => ['user_id' => $otherUser->id]]));
+    $response->assertOk();
+    $responseIds = collect($response->json())->pluck('id')->toArray();
+
+    $this->assertContains($item->id, $responseIds);
 });
 
 test('a user does not see items from a user they have blocked', function () {
