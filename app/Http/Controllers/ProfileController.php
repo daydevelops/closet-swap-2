@@ -7,7 +7,6 @@ use App\Models\ClothingItem;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class ProfileController extends Controller
 {
@@ -72,13 +71,10 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        Auth::logout();
+        $user->tokens()->delete();
 
         $user->delete();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return response()->json(['message' => 'Account deleted successfully'],201);
+        return response()->json(['message' => 'Account deleted successfully'], 201);
     }
 }
