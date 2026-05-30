@@ -3,6 +3,7 @@
 use App\Models\CiType;
 use App\Models\User;
 use Database\Factories\ClothingItemFactory;
+use Database\Factories\ClothingItemImageFactory;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
@@ -58,7 +59,7 @@ return new class extends Migration
                 $typeName = $typeNames[$typeId];
                 $adj      = $this->adjectives[array_rand($this->adjectives)];
 
-                ClothingItemFactory::new()->create([
+                $item = ClothingItemFactory::new()->create([
                     'user_id'     => $user->id,
                     'title'       => "{$adj} {$typeName}",
                     'description' => $this->descriptions[array_rand($this->descriptions)],
@@ -66,6 +67,13 @@ return new class extends Migration
                     'ci_type_id'  => $typeId,
                     'status'      => $this->randomStatus(),
                 ]);
+
+                $imageCount = rand(0, 3);
+                for ($k = 0; $k < $imageCount; $k++) {
+                    ClothingItemImageFactory::new()->create([
+                        'clothing_item_id' => $item->id,
+                    ]);
+                }
             }
         }
     }
@@ -85,6 +93,7 @@ return new class extends Migration
             ->toArray();
 
         if (!empty($itemIds)) {
+            DB::table('clothing_item_images')->whereIn('clothing_item_id', $itemIds)->delete();
             DB::table('ci_color_item')->whereIn('clothing_item_id', $itemIds)->delete();
             DB::table('ci_material_item')->whereIn('clothing_item_id', $itemIds)->delete();
             DB::table('ci_tag_item')->whereIn('clothing_item_id', $itemIds)->delete();
