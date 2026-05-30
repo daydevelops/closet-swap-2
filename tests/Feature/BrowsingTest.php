@@ -1,9 +1,12 @@
 <?php
 
 use App\Models\ClothingItem;
+use App\Models\ClothingItemImage;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 
 test('home page is displayed for a guest', function () {
+    Storage::fake('s3');
     $items = \App\Models\ClothingItem::factory()->count(3)->create();
     foreach($items as $item) {
         \App\Models\ClothingItemImage::factory()->create(['clothing_item_id' => $item->id]);
@@ -18,6 +21,7 @@ test('home page is displayed for a guest', function () {
 });
 
 test('home page is displayed with search results', function () {
+    Storage::fake('s3');
     // Use a unique title that won't match any seed data
     $uniqueTitle = 'ZZZ-Test-Item-' . uniqid();
     $item = \App\Models\ClothingItem::factory()->create(['title' => $uniqueTitle]);
@@ -69,6 +73,19 @@ test('a user does not see items from a user they have blocked', function () {
     $responseIds = collect($response->json())->pluck('id')->toArray();
     // The blocked user's item should not appear in the feed
     $this->assertNotContains($item->id, $responseIds);
+});
+
+test('feed items include a signed image url', function () {
+    Storage::fake('s3');
+    $item = ClothingItem::factory()->create();
+    $image = ClothingItemImage::factory()->create(['clothing_item_id' => $item->id]);
+
+    $response = $this->getJson(route('dashboard'));
+    $response->assertOk();
+
+    $responseItem = collect($response->json())->firstWhere('id', $item->id);
+    expect($responseItem['images'])->toHaveCount(1)
+        ->and($responseItem['images'][0]['signed_url'])->not->toBeNull();
 });
 
 test('a user can search for other users', function () {
