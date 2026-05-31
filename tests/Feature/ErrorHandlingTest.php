@@ -11,6 +11,6 @@ test('a missing model returns a json 404', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
 
-    $response = $this->getJson('/api/items/' . fake()->uuid());
+    $response = $this->getJson('/api/items/99999999');
     $response->assertStatus(404)->assertJsonStructure(['message']);
 });

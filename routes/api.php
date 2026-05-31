@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\PasswordForgotController;
+use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\BrowseController;
 use App\Http\Controllers\ClothingItemController;
@@ -23,12 +24,23 @@ Route::get('/wanted-ads', [BrowseController::class,'wantedAds'])->name('wanted')
 
 Route::get('/items/getOptions', [ClothingItemController::class, 'create'])->name('items.create');
 
-Route::middleware('auth:sanctum')->group(function () {
+// Email verification link — requires auth + valid signed URL, but NOT the verified middleware
+Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+    ->middleware(['auth:sanctum', 'signed', 'throttle:6,1'])
+    ->name('verification.verify');
 
+// Auth required, but no email verification required
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::post('/password/change', [PasswordResetController::class, 'changePassword']);
     Route::post('/password/reset', [PasswordResetController::class, 'resetPassword'])->name('password.reset');
+    Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
+        ->middleware('throttle:6,1')
+        ->name('verification.send');
+});
 
-    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+// Auth + verified email required for all other protected routes
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
     Route::prefix('profile')->group(function () {
         Route::get('/{user}', [ProfileController::class, 'show'])->name('profile.show');
