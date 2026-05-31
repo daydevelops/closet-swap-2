@@ -85,6 +85,26 @@ test('a user cannot create a clothing item with missing required fields', functi
     $this->assertDatabaseCount('clothing_items', $itemCount);
 });
 
+test('a user can create a clothing item with colors, materials, and tags', function () {
+    Storage::fake('s3');
+    $user     = User::factory()->create();
+    $color    = \App\Models\CiColors::first();
+    $material = \App\Models\CiMaterial::first();
+    $tag      = \App\Models\CiTags::first();
+
+    $response = $this->actingAs($user)->postJson(route('items.store'), array_merge(validItemPayload(), [
+        'colors'    => [$color->name],
+        'materials' => [$material->name],
+        'tags'      => [$tag->name],
+    ]));
+
+    $response->assertStatus(201);
+    $item = \App\Models\ClothingItem::find($response->json('id'));
+    expect($item->colors->pluck('name')->toArray())->toContain($color->name);
+    expect($item->materials->pluck('name')->toArray())->toContain($material->name);
+    expect($item->tags->pluck('name')->toArray())->toContain($tag->name);
+});
+
 test('a user can update a clothing item', function () {
 
 });
