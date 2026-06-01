@@ -32,7 +32,7 @@ Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 've
 // Auth required, but no email verification required
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
-    Route::post('/password/change', [PasswordResetController::class, 'changePassword']);
+    Route::post('/password/change', [PasswordResetController::class, 'changePassword'])->name('password.change');
     Route::post('/password/reset', [PasswordResetController::class, 'resetPassword'])->name('password.reset');
     Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
         ->middleware('throttle:6,1')

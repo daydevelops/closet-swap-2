@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Notifications\PasswordChangedNotification;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 
 it('can change password for authenticated user with correct current password', function () {
@@ -71,4 +73,20 @@ it('cannot send a password reset link for a guest with invalid email', function 
     // Assert: Ensure the response indicates no failure
     $response->assertStatus(200)
         ->assertJson(['message' => trans(Password::RESET_LINK_SENT)]);
+});
+
+it('sends a notification email when password is changed', function () {
+    Notification::fake();
+
+    $user = User::factory()->create([
+        'password' => Hash::make('currentPassword123'),
+    ]);
+
+    $this->actingAs($user)->postJson(route('password.change'), [
+        'current_password'          => 'currentPassword123',
+        'new_password'              => 'newPassword123',
+        'new_password_confirmation' => 'newPassword123',
+    ])->assertOk();
+
+    Notification::assertSentTo($user, PasswordChangedNotification::class);
 });
