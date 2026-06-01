@@ -37,7 +37,7 @@ class ClothingItemPolicy
      */
     public function update(User $user, ClothingItem $clothingItem): bool
     {
-        return false;
+        return $user->id === $clothingItem->user_id;
     }
 
     /**
@@ -45,7 +45,7 @@ class ClothingItemPolicy
      */
     public function delete(User $user, ClothingItem $clothingItem): bool
     {
-        return false;
+        return $user->id === $clothingItem->user_id;
     }
 
     /**

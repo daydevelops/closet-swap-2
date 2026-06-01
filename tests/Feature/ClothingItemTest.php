@@ -106,19 +106,62 @@ test('a user can create a clothing item with colors, materials, and tags', funct
 });
 
 test('a user can update a clothing item', function () {
+    Storage::fake('s3');
 
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)->patchJson(route('items.update', $item), [
+        'title' => 'Updated Title',
+        'brand' => 'Foobar',
+    ]);
+
+    $response->assertStatus(200);
+    $this->assertDatabaseHas('clothing_items', [
+        'id'    => $item->id,
+        'title' => 'Updated Title',
+        'brand' => 'Foobar',
+    ]);
 });
 
 test('a user can not update a clothing item they do not own', function () {
+    Storage::fake('s3');
 
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $item  = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id]);
+
+    $response = $this->actingAs($other)->patchJson(route('items.update', $item), [
+        'title' => 'Hacked Title',
+    ]);
+
+    $response->assertStatus(403);
+    $this->assertDatabaseMissing('clothing_items', ['title' => 'Hacked Title']);
 });
 
 test('a user can delete a clothing item', function () {
+    Storage::fake('s3');
 
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)->deleteJson(route('items.destroy', $item));
+
+    $response->assertStatus(200);
+    $this->assertDatabaseMissing('clothing_items', ['id' => $item->id]);
 });
 
 test('a user can not delete a clothing item they do not own', function () {
+    Storage::fake('s3');
 
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $item  = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id]);
+
+    $response = $this->actingAs($other)->deleteJson(route('items.destroy', $item));
+
+    $response->assertStatus(403);
+    $this->assertDatabaseHas('clothing_items', ['id' => $item->id]);
 });
 
 test('a user can mark a clothing item as taken', function () {

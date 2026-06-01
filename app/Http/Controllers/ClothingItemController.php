@@ -15,6 +15,7 @@ use App\Models\CiColors;
 use App\Models\CiMaterial;
 use App\Models\CiGender;
 use App\Services\ImageService;
+use Illuminate\Support\Facades\Storage;
 
 class ClothingItemController extends Controller
 {
@@ -92,19 +93,40 @@ class ClothingItemController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(ClothingItem $clothingItem)
-    {
-        //
-    }
-
-    /**
      * Update the specified resource in storage.
      */
     public function update(UpdateClothingItemRequest $request, ClothingItem $clothingItem)
     {
-        //
+        if (!auth()->user()->can('update', $clothingItem)) {
+            abort(403);
+        }
+
+        $data = [];
+        if ($request->has('title'))       $data['title']           = $request->title;
+        if ($request->has('description')) $data['description']     = $request->description;
+        if ($request->has('type'))        $data['ci_type_id']      = $request->type;
+        if ($request->has('gender'))      $data['ci_gender_id']    = $request->gender;
+        if ($request->has('size'))        $data['ci_size_id']      = $request->size;
+        if ($request->has('fit'))          $data['ci_fit_id']        = $request->fit;
+        if ($request->has('condition'))   $data['ci_condition_id'] = $request->condition;
+        if ($request->has('units'))       $data['ci_units_id']     = $request->units;
+        if ($request->has('brand'))       $data['brand']           = $request->brand;
+
+        if (!empty($data)) {
+            $clothingItem->update($data);
+        }
+
+        if ($request->has('colors')) {
+            $clothingItem->colors()->sync(CiColors::whereIn('name', $request->colors)->pluck('id'));
+        }
+        if ($request->has('materials')) {
+            $clothingItem->materials()->sync(CiMaterial::whereIn('name', $request->materials)->pluck('id'));
+        }
+        if ($request->has('tags')) {
+            $clothingItem->tags()->sync(CiTags::whereIn('name', $request->tags)->pluck('id'));
+        }
+
+        return response()->json(['message' => 'Item updated successfully'], 200);
     }
 
     /**
@@ -112,6 +134,23 @@ class ClothingItemController extends Controller
      */
     public function destroy(ClothingItem $clothingItem)
     {
-        //
+        if (!auth()->user()->can('delete', $clothingItem)) {
+            abort(403);
+        }
+
+        foreach ($clothingItem->images as $image) {
+            if (!str_starts_with($image->path, 'http')) {
+                Storage::disk('s3')->delete($image->path);
+            }
+            $image->delete();
+        }
+
+        $clothingItem->colors()->detach();
+        $clothingItem->materials()->detach();
+        $clothingItem->tags()->detach();
+
+        $clothingItem->delete();
+
+        return response()->json(['message' => 'Item deleted successfully'], 200);
     }
 }
