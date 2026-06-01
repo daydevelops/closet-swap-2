@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [RegisterController::class, 'register'])->name('register');
 Route::post('/login', [LoginController::class, 'login'])->name('login');
 Route::post('/password/email', [PasswordForgotController::class, 'sendResetLinkEmail'])->name('password.email');
+Route::post('/password/reset', [PasswordResetController::class, 'resetPassword'])->name('password.reset');
 
 Route::get('/dashboard', [BrowseController::class,'dashboard'])->name('dashboard');
 Route::get('/wanted-ads', [BrowseController::class,'wantedAds'])->name('wanted');
@@ -33,7 +34,6 @@ Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 've
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::post('/password/change', [PasswordResetController::class, 'changePassword'])->name('password.change');
-    Route::post('/password/reset', [PasswordResetController::class, 'resetPassword'])->name('password.reset');
     Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
         ->middleware('throttle:6,1')
         ->name('verification.send');
