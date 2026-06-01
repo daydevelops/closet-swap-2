@@ -6,23 +6,26 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateClothingItemRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
-            //
+            'title'       => 'sometimes|string|max:140',
+            'description' => 'sometimes|string|max:1000',
+            'type'        => 'sometimes|exists:ci_types,id',
+            'gender'      => 'sometimes|exists:ci_genders,id',
+            'size'        => 'sometimes|exists:ci_sizes,id',
+            'fit'          => 'sometimes|exists:ci_fits,id',
+            'condition'   => 'sometimes|exists:ci_conditions,id',
+            'units'       => 'nullable|exists:ci_units,id',
+            'brand'       => 'sometimes|string|max:255',
+            'tags'        => 'sometimes|array',
+            'colors'      => 'sometimes|array',
+            'materials'   => 'sometimes|array',
         ];
     }
 }
