@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Notifications\PasswordChangedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
@@ -27,6 +28,8 @@ class PasswordResetController extends Controller
         // Update the user's password
         $user->password = Hash::make($request->new_password);
         $user->save();
+
+        $user->notify(new PasswordChangedNotification());
 
         return response()->json(['message' => 'Password changed successfully.']);
     }
