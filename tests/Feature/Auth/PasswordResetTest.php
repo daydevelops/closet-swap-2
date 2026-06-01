@@ -75,6 +75,49 @@ it('cannot send a password reset link for a guest with invalid email', function 
         ->assertJson(['message' => trans(Password::RESET_LINK_SENT)]);
 });
 
+it('a user can reset their password with a valid token', function () {
+    Notification::fake();
+
+    $user  = User::factory()->create();
+    $token = Password::createToken($user);
+
+    $response = $this->postJson(route('password.reset'), [
+        'token'                 => $token,
+        'email'                 => $user->email,
+        'password'              => 'newPassword123',
+        'password_confirmation' => 'newPassword123',
+    ]);
+
+    $response->assertStatus(200);
+    $user->refresh();
+    expect(Hash::check('newPassword123', $user->password))->toBeTrue();
+    Notification::assertSentTo($user, PasswordChangedNotification::class);
+});
+
+it('a user cannot reset their password with an invalid token', function () {
+    $user = User::factory()->create();
+
+    $response = $this->postJson(route('password.reset'), [
+        'token'                 => 'invalid-token',
+        'email'                 => $user->email,
+        'password'              => 'newPassword123',
+        'password_confirmation' => 'newPassword123',
+    ]);
+
+    $response->assertStatus(422);
+});
+
+it('a user cannot reset their password with a non-existent email', function () {
+    $response = $this->postJson(route('password.reset'), [
+        'token'                 => 'some-token',
+        'email'                 => 'nobody@example.com',
+        'password'              => 'newPassword123',
+        'password_confirmation' => 'newPassword123',
+    ]);
+
+    $response->assertStatus(422);
+});
+
 it('sends a notification email when password is changed', function () {
     Notification::fake();
 
