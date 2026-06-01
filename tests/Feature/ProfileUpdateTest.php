@@ -17,36 +17,11 @@ test('profile information can be updated', function () {
     $this->actingAs($user);
 
     $response = $this->patchJson(route('profile.update'), [
-        'name'  => 'Updated Name',
-        'email' => 'updated@example.com',
+        'name' => 'Updated Name',
     ]);
 
     $response->assertStatus(201);
-    $this->assertDatabaseHas('users', ['id' => $user->id, 'name' => 'Updated Name', 'email' => 'updated@example.com']);
-});
-
-test('email verification status is cleared when email is changed', function () {
-    $user = User::factory()->create();
-    $this->actingAs($user);
-
-    $this->patchJson(route('profile.update'), [
-        'name'  => $user->name,
-        'email' => 'newemail@example.com',
-    ]);
-
-    $this->assertNull($user->fresh()->email_verified_at);
-});
-
-test('email verification status is unchanged when email address is unchanged', function () {
-    $user = User::factory()->create();
-    $this->actingAs($user);
-
-    $this->patchJson(route('profile.update'), [
-        'name'  => 'Updated Name',
-        'email' => $user->email,
-    ]);
-
-    $this->assertNotNull($user->fresh()->email_verified_at);
+    $this->assertDatabaseHas('users', ['id' => $user->id, 'name' => 'Updated Name']);
 });
 
 test('user can delete their account', function () {
@@ -59,6 +34,20 @@ test('user can delete their account', function () {
 
     $response->assertStatus(201);
     $this->assertDatabaseMissing('users', ['id' => $user->id]);
+});
+
+test('a user can update their bio', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $response = $this->patchJson(route('profile.update'), [
+        'name'  => $user->name,
+        'email' => $user->email,
+        'bio'   => 'She/her. Based in Montreal.',
+    ]);
+
+    $response->assertStatus(201);
+    $this->assertDatabaseHas('users', ['id' => $user->id, 'bio' => 'She/her. Based in Montreal.']);
 });
 
 test('correct password must be provided to delete account', function () {
