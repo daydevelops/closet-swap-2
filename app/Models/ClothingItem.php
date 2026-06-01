@@ -14,7 +14,19 @@ class ClothingItem extends Model
     use HasUuids;
     use FilterBlocked;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'title',
+        'description',
+        'brand',
+        'ci_type_id',
+        'ci_gender_id',
+        'ci_size_id',
+        'ci_units_id',
+        'ci_fit_id',
+        'ci_condition_id',
+        'user_id',
+        'status',
+    ];
 
     protected $casts = [];
 
