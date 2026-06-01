@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\FilterBlocked;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -10,6 +11,7 @@ class ClothingItem extends Model
 {
     /** @use HasFactory<\Database\Factories\ClothingItemFactory> */
     use HasFactory;
+    use HasUuids;
     use FilterBlocked;
 
     protected $guarded = [];
