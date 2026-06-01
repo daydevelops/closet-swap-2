@@ -84,12 +84,24 @@ class ClothingItemController extends Controller
      */
     public function show(ClothingItem $clothingItem)
     {
-        $item = $clothingItem->load(['images', 'type', 'size', 'fit', 'condition', 'units', 'gender']);
-        $images = ImageService::signedUrls($item->images);
-        return response()->json([
-            'images' => $images,
-            'item' => $item
-        ], 201);
+        $clothingItem->load(['user', 'images', 'type', 'size', 'fit', 'condition', 'units', 'gender', 'colors', 'materials', 'tags']);
+        $images = ImageService::signedUrls($clothingItem->images);
+
+        $item = $clothingItem->toArray();
+        // Return many-to-many as name strings (frontend expects string[])
+        $item['tags']      = $clothingItem->tags->pluck('name')->toArray();
+        $item['colors']    = $clothingItem->colors->pluck('name')->toArray();
+        $item['materials'] = $clothingItem->materials->pluck('name')->toArray();
+        // Return only public-safe user fields (avoid exposing email)
+        if ($clothingItem->user) {
+            $item['user'] = [
+                'id'         => $clothingItem->user->id,
+                'name'       => $clothingItem->user->name,
+                'avatar_url' => $clothingItem->user->avatar_url,
+            ];
+        }
+
+        return response()->json(['images' => $images, 'item' => $item], 200);
     }
 
     /**

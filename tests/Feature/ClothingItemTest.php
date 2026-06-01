@@ -164,6 +164,16 @@ test('a user can not delete a clothing item they do not own', function () {
     $this->assertDatabaseHas('clothing_items', ['id' => $item->id]);
 });
 
+test('an authenticated user can view a clothing item', function () {
+    Storage::fake('s3');
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)->getJson(route('items.show', $item));
+    $response->assertStatus(200)
+             ->assertJsonStructure(['item' => ['id', 'title'], 'images']);
+});
+
 test('a user can mark a clothing item as taken', function () {
 
 });
