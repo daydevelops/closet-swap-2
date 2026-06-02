@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Storage;
 
 test('home page is displayed for a guest', function () {
     Storage::fake('s3');
-    $items = \App\Models\ClothingItem::factory()->count(3)->create();
+    $items = \App\Models\ClothingItem::factory()->count(3)->create(['status' => 'available']);
     foreach($items as $item) {
         \App\Models\ClothingItemImage::factory()->create(['clothing_item_id' => $item->id]);
     }
@@ -24,7 +24,7 @@ test('home page is displayed with search results', function () {
     Storage::fake('s3');
     // Use a unique title that won't match any seed data
     $uniqueTitle = 'ZZZ-Test-Item-' . uniqid();
-    $item = \App\Models\ClothingItem::factory()->create(['title' => $uniqueTitle]);
+    $item = \App\Models\ClothingItem::factory()->create(['title' => $uniqueTitle, 'status' => 'available']);
     \App\Models\ClothingItemImage::factory()->create(['clothing_item_id' => $item->id]);
 
     $response = $this->get(route('dashboard', ['search' => $uniqueTitle]));
@@ -51,7 +51,7 @@ test('home page is displayed with filter results', function () {
 
 test('disallowed filter keys are ignored', function () {
     $user = \App\Models\User::factory()->create();
-    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
 
     // Filter on user_id (not in allowlist) — should be ignored, item must still appear
     $otherUser = \App\Models\User::factory()->create();
@@ -66,7 +66,7 @@ test('a user does not see items from a user they have blocked', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
     $blockedUser = User::factory()->create();
-    $item = ClothingItem::factory()->create(['user_id' => $blockedUser->id]);
+    $item = ClothingItem::factory()->create(['user_id' => $blockedUser->id, 'status' => 'available']);
     $blockedUser->block();
     $response = $this->get(route('dashboard'));
     $response->assertOk();
@@ -77,7 +77,7 @@ test('a user does not see items from a user they have blocked', function () {
 
 test('feed items include a signed image url', function () {
     Storage::fake('s3');
-    $item = ClothingItem::factory()->create();
+    $item = ClothingItem::factory()->create(['status' => 'available']);
     $image = ClothingItemImage::factory()->create(['clothing_item_id' => $item->id]);
 
     $response = $this->getJson(route('dashboard'));
@@ -86,6 +86,44 @@ test('feed items include a signed image url', function () {
     $responseItem = collect($response->json('data'))->firstWhere('id', $item->id);
     expect($responseItem['images'])->toHaveCount(1)
         ->and($responseItem['images'][0]['signed_url'])->not->toBeNull();
+});
+
+test('latest feed only shows available items', function () {
+    $availableItem   = ClothingItem::factory()->create(['status' => 'available']);
+    $soldItem        = ClothingItem::factory()->create(['status' => 'sold']);
+    $donatedItem     = ClothingItem::factory()->create(['status' => 'donated']);
+
+    $response = $this->getJson(route('dashboard'));
+    $response->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->toArray();
+    $this->assertContains($availableItem->id, $ids);
+    $this->assertNotContains($soldItem->id, $ids);
+    $this->assertNotContains($donatedItem->id, $ids);
+});
+
+test('latest feed excludes the authenticated user\'s own items', function () {
+    $user      = User::factory()->create();
+    $ownItem   = ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
+    $otherItem = ClothingItem::factory()->create(['status' => 'available']);
+
+    $this->actingAs($user);
+    $response = $this->getJson(route('dashboard'));
+    $response->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->toArray();
+    $this->assertNotContains($ownItem->id, $ids);
+    $this->assertContains($otherItem->id, $ids);
+});
+
+test('latest feed shows all items to guests', function () {
+    $item = ClothingItem::factory()->create(['status' => 'available']);
+
+    $response = $this->getJson(route('dashboard'));
+    $response->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->toArray();
+    $this->assertContains($item->id, $ids);
 });
 
 test('a user can search for other users', function () {
@@ -122,6 +160,38 @@ test('for-you feed returns items that share a tag with a liked item', function (
 
     $ids = collect($response->json('data'))->pluck('id')->toArray();
     $this->assertContains($matchingItem->id, $ids);
+});
+
+test('for-you feed returns ONLY items that share a tag with a liked item', function () {
+    // Pick two distinct tags so there's no accidental overlap
+    $tags       = \App\Models\CiTags::inRandomOrder()->take(2)->get();
+    $likedTag   = $tags->first();
+    $otherTag   = $tags->last();
+
+    $liker = User::factory()->create();
+    $owner = User::factory()->create();
+
+    // Item the user liked — tagged with $likedTag only
+    $likedItem = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id, 'status' => 'available']);
+    $likedItem->tags()->sync([$likedTag->id]);
+
+    // Item with the matching tag — should appear
+    $matchingItem = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id, 'status' => 'available']);
+    $matchingItem->tags()->sync([$likedTag->id]);
+
+    // Item with a different tag only — should NOT appear
+    $nonMatchingItem = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id, 'status' => 'available']);
+    $nonMatchingItem->tags()->sync([$otherTag->id]);
+
+    $liker->likes()->attach($likedItem->id);
+
+    $this->actingAs($liker);
+    $response = $this->getJson(route('dashboard', ['sort' => 'for-you']));
+    $response->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->toArray();
+    $this->assertContains($matchingItem->id, $ids);
+    $this->assertNotContains($nonMatchingItem->id, $ids);
 });
 
 test('for-you feed excludes the authenticated user\'s own items', function () {
