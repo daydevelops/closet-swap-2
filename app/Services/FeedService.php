@@ -46,7 +46,7 @@ class FeedService
         } elseif ($sort === 'trending') {
             self::applyTrendingSort($query);
         } else {
-            $query->latest();
+            self::applyLatestSort($query);
         }
 
         return $query->paginate(20, ['*'], 'page', $page);
@@ -102,7 +102,17 @@ class FeedService
                   ->where('status', 'available')
                   ->latest();
         } else {
-            $query->latest();
+            self::applyLatestSort($query);
+        }
+    }
+
+    private static function applyLatestSort($query) : void
+    {
+        $query->where('status', 'available')
+              ->latest();
+
+        if (auth('sanctum')->check()) {
+            $query->where('user_id', '!=', auth('sanctum')->id());
         }
     }
 
