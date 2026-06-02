@@ -22,6 +22,9 @@ RUN wget https://github.com/jwilder/dockerize/releases/download/v0.6.1/dockerize
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo_mysql exif pcntl bcmath gd
 
+# PHP config
+COPY docker/php.ini /usr/local/etc/php/conf.d/custom.ini
+
 # Install Composer
 COPY --from=composer:2.5 /usr/bin/composer /usr/bin/composer
 
