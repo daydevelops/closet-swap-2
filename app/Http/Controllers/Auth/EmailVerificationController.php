@@ -5,22 +5,19 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class EmailVerificationController extends Controller
 {
-    public function verify(EmailVerificationRequest $request): RedirectResponse
+    public function verify(EmailVerificationRequest $request): JsonResponse
     {
-        $frontendUrl = config('app.frontend_url', 'http://localhost:5173');
-
         if ($request->user()->hasVerifiedEmail()) {
-            return redirect($frontendUrl . '/?already_verified=1');
+            return response()->json(['message' => 'already_verified'], 200);
         }
 
         $request->fulfill();
 
-        return redirect($frontendUrl . '/?verified=1');
+        return response()->json(['message' => 'verified'], 200);
     }
 
     public function resend(Request $request): JsonResponse
