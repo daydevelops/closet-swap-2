@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ClothingItem;
 use App\Models\WantedAd;
+use Illuminate\Support\Facades\DB;
 
 class FeedService
 {
@@ -40,7 +41,7 @@ class FeedService
             $query->where($key, $value);
         }
 
-        if ($sort === 'for-you' && auth()->check()) {
+        if ($sort === 'for-you' && auth('sanctum')->check()) {
             self::applyForYouSort($query);
         } elseif ($sort === 'trending') {
             self::applyTrendingSort($query);
@@ -67,11 +68,32 @@ class FeedService
 
     private static function applyForYouSort($query) : void
     {
-        $user = auth()->user();
-        $likedTagIds = $user->likes()->with('tags')->get()
-            ->flatMap(fn ($item) => $item->tags->pluck('id'))
-            ->unique()
-            ->values();
+        /*
+         * For You algorithm
+         *
+         * We collect every tag from every item the user has ever liked — not just
+         * from one item, but the full union across all likes. For example, if the
+         * user liked two items tagged [Party, Vintage] and [Y2K, Cottagecore],
+         * the tag pool becomes {Party, Vintage, Y2K, Cottagecore}.
+         *
+         * We then surface any available item that shares at least one tag with
+         * that pool, ordered by recency. An item does not need to have a specific
+         * tag the user once liked — it just needs to overlap with any tag from
+         * any liked item.
+         *
+         * Excluded from results:
+         *  - Items owned by the authenticated user
+         *  - Items the user has already liked
+         *  - Items with status != available
+         *
+         * Falls back to the standard latest feed if the user has no likes yet.
+         */
+        $user = auth('sanctum')->user();
+        $likedTagIds = DB::table('ci_tag_item')
+            ->join('likes', 'ci_tag_item.clothing_item_id', '=', 'likes.clothing_item_id')
+            ->where('likes.user_id', $user->id)
+            ->pluck('ci_tag_item.ci_tag_id')
+            ->unique();
 
         if ($likedTagIds->isNotEmpty()) {
             $query->whereHas('tags', fn ($q) => $q->whereIn('ci_tags.id', $likedTagIds))
@@ -91,6 +113,6 @@ class FeedService
 
     private static function filterBlocked($query) : \Illuminate\Database\Eloquent\Builder
     {
-        return auth()->check() ? $query->notBlocked() : $query;
+        return auth('sanctum')->check() ? $query->notBlocked() : $query;
     }
 }
