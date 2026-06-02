@@ -101,6 +101,10 @@ class ClothingItemController extends Controller
             ];
         }
 
+        $item['liked'] = auth('sanctum')->check()
+            ? auth('sanctum')->user()->likes()->where('clothing_item_id', $clothingItem->id)->exists()
+            : false;
+
         return response()->json(['images' => $images, 'item' => $item], 200);
     }
 
