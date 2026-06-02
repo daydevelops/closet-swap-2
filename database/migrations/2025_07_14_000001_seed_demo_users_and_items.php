@@ -75,11 +75,15 @@ return new class extends Migration
             }
         }
 
+        $demoUsers = [];
+
         // --- 20 random demo users ---
         for ($i = 1; $i <= 20; $i++) {
             $user = User::factory()->create([
                 'email' => "demo.{$i}@demo.test",
             ]);
+
+            $demoUsers[] = $user;
 
             $itemCount = rand(20, 50);
 
@@ -105,6 +109,33 @@ return new class extends Migration
                 }
             }
         }
+
+        // --- Seed likes ---
+        // Give each demo user a handful of likes on other users' items
+        $allItemIds = DB::table('clothing_items')
+            ->where('status', 'available')
+            ->pluck('id', 'user_id');
+
+        foreach ($demoUsers as $demoUser) {
+            $otherItems = DB::table('clothing_items')
+                ->where('status', 'available')
+                ->where('user_id', '!=', $demoUser->id)
+                ->inRandomOrder()
+                ->limit(rand(5, 15))
+                ->pluck('id')
+                ->toArray();
+            $demoUser->likes()->syncWithoutDetaching($otherItems);
+        }
+
+        // Give the test user some likes too
+        $testUserLikes = DB::table('clothing_items')
+            ->where('status', 'available')
+            ->where('user_id', '!=', $testUser->id)
+            ->inRandomOrder()
+            ->limit(10)
+            ->pluck('id')
+            ->toArray();
+        $testUser->likes()->syncWithoutDetaching($testUserLikes);
     }
 
     public function down(): void
@@ -119,12 +150,15 @@ return new class extends Migration
 
         if (empty($userIds)) return;
 
+        DB::table('likes')->whereIn('user_id', $userIds)->delete();
+
         $itemIds = DB::table('clothing_items')
             ->whereIn('user_id', $userIds)
             ->pluck('id')
             ->toArray();
 
         if (!empty($itemIds)) {
+            DB::table('likes')->whereIn('clothing_item_id', $itemIds)->delete();
             DB::table('clothing_item_images')->whereIn('clothing_item_id', $itemIds)->delete();
             DB::table('ci_color_item')->whereIn('clothing_item_id', $itemIds)->delete();
             DB::table('ci_material_item')->whereIn('clothing_item_id', $itemIds)->delete();

@@ -92,6 +92,130 @@ test('a user can search for other users', function () {
 
 });
 
+test('for-you feed returns items that share a tag with a liked item', function () {
+    Storage::fake('s3');
+
+    $tag = \App\Models\CiTags::inRandomOrder()->first();
+
+    $liker = User::factory()->create();
+    $owner = User::factory()->create();
+
+    // Item the user liked — has $tag
+    $likedItem = \App\Models\ClothingItem::factory()->create([
+        'user_id' => $owner->id,
+        'status'  => 'available',
+    ]);
+    $likedItem->tags()->sync([$tag->id]);
+
+    // Another item by $owner with same tag — should appear in for-you
+    $matchingItem = \App\Models\ClothingItem::factory()->create([
+        'user_id' => $owner->id,
+        'status'  => 'available',
+    ]);
+    $matchingItem->tags()->sync([$tag->id]);
+
+    $liker->likes()->attach($likedItem->id);
+
+    $this->actingAs($liker);
+    $response = $this->getJson(route('dashboard', ['sort' => 'for-you']));
+    $response->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->toArray();
+    $this->assertContains($matchingItem->id, $ids);
+});
+
+test('for-you feed excludes the authenticated user\'s own items', function () {
+    $tag = \App\Models\CiTags::inRandomOrder()->first();
+
+    $user  = User::factory()->create();
+    $other = User::factory()->create();
+
+    $likedItem = \App\Models\ClothingItem::factory()->create(['user_id' => $other->id, 'status' => 'available']);
+    $likedItem->tags()->sync([$tag->id]);
+
+    // User's own item with the same tag — should be excluded
+    $ownItem = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
+    $ownItem->tags()->sync([$tag->id]);
+
+    $user->likes()->attach($likedItem->id);
+
+    $this->actingAs($user);
+    $response = $this->getJson(route('dashboard', ['sort' => 'for-you']));
+    $response->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->toArray();
+    $this->assertNotContains($ownItem->id, $ids);
+});
+
+test('for-you feed excludes items the user has already liked', function () {
+    $tag = \App\Models\CiTags::inRandomOrder()->first();
+
+    $user  = User::factory()->create();
+    $other = User::factory()->create();
+
+    $likedItem = \App\Models\ClothingItem::factory()->create(['user_id' => $other->id, 'status' => 'available']);
+    $likedItem->tags()->sync([$tag->id]);
+
+    $user->likes()->attach($likedItem->id);
+
+    $this->actingAs($user);
+    $response = $this->getJson(route('dashboard', ['sort' => 'for-you']));
+    $response->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->toArray();
+    $this->assertNotContains($likedItem->id, $ids);
+});
+
+test('for-you feed only shows available items', function () {
+    $tag = \App\Models\CiTags::inRandomOrder()->first();
+
+    $user  = User::factory()->create();
+    $other = User::factory()->create();
+
+    $likedItem = \App\Models\ClothingItem::factory()->create(['user_id' => $other->id, 'status' => 'available']);
+    $likedItem->tags()->sync([$tag->id]);
+
+    $unavailableItem = \App\Models\ClothingItem::factory()->create(['user_id' => $other->id, 'status' => 'sold']);
+    $unavailableItem->tags()->sync([$tag->id]);
+
+    $user->likes()->attach($likedItem->id);
+
+    $this->actingAs($user);
+    $response = $this->getJson(route('dashboard', ['sort' => 'for-you']));
+    $response->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->toArray();
+    $this->assertNotContains($unavailableItem->id, $ids);
+});
+
+test('for-you feed falls back to latest feed when user has no likes', function () {
+    Storage::fake('s3');
+
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['status' => 'available']);
+
+    $this->actingAs($user);
+    $response = $this->getJson(route('dashboard', ['sort' => 'for-you']));
+    $response->assertOk();
+
+    // Feed should still return results (not crash) and include the item
+    $ids = collect($response->json('data'))->pluck('id')->toArray();
+    $this->assertContains($item->id, $ids);
+});
+
+test('for-you feed falls back to latest for unauthenticated users', function () {
+    Storage::fake('s3');
+
+    $item = \App\Models\ClothingItem::factory()->create(['status' => 'available']);
+    \App\Models\ClothingItemImage::factory()->create(['clothing_item_id' => $item->id]);
+
+    $response = $this->getJson(route('dashboard', ['sort' => 'for-you']));
+    $response->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->toArray();
+    $this->assertContains($item->id, $ids);
+});
+
 test('a user can not see a user\'s profile items if they are blocked', function () {
     $user = User::factory()->create();
     $this->actingAs($user);

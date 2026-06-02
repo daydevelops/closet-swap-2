@@ -40,8 +40,10 @@ class FeedService
             $query->where($key, $value);
         }
 
-        if ($sort === 'trending') {
-            $query->withCount('likes')->orderBy('likes_count', 'desc');
+        if ($sort === 'for-you' && auth()->check()) {
+            self::applyForYouSort($query);
+        } elseif ($sort === 'trending') {
+            self::applyTrendingSort($query);
         } else {
             $query->latest();
         }
@@ -61,6 +63,30 @@ class FeedService
             $query->where($key, $value);
         }
         return $query->get();
+    }
+
+    private static function applyForYouSort($query) : void
+    {
+        $user = auth()->user();
+        $likedTagIds = $user->likes()->with('tags')->get()
+            ->flatMap(fn ($item) => $item->tags->pluck('id'))
+            ->unique()
+            ->values();
+
+        if ($likedTagIds->isNotEmpty()) {
+            $query->whereHas('tags', fn ($q) => $q->whereIn('ci_tags.id', $likedTagIds))
+                  ->where('user_id', '!=', $user->id)
+                  ->whereNotIn('id', $user->likes()->pluck('clothing_items.id'))
+                  ->where('status', 'available')
+                  ->latest();
+        } else {
+            $query->latest();
+        }
+    }
+
+    private static function applyTrendingSort($query) : void
+    {
+        $query->withCount('likes')->orderBy('likes_count', 'desc');
     }
 
     private static function filterBlocked($query) : \Illuminate\Database\Eloquent\Builder
