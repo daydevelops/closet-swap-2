@@ -25,7 +25,7 @@ class FeedService
         $sort = null,
         $page = 1
     ) : \Illuminate\Contracts\Pagination\LengthAwarePaginator {
-        $query = ClothingItem::query()->with('images');
+        $query = ClothingItem::query()->with('images')->withCount('likes');
         $query = self::filterBlocked($query);
 
         if ($search) {
@@ -118,8 +118,7 @@ class FeedService
 
     private static function applyTrendingSort($query) : void
     {
-        $query->withCount('likes')
-              ->where('status', 'available')
+        $query->where('status', 'available')
               ->orderBy('likes_count', 'desc');
 
         if (auth('sanctum')->check()) {
