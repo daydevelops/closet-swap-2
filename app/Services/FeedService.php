@@ -17,19 +17,36 @@ class FeedService
         'category',
     ];
 
-    public static function getItemFeed($search = null, $filters = []) : \Illuminate\Database\Eloquent\Collection
-    {
-        $query = ClothingItem::query();
+    public static function getItemFeed(
+        $search = null,
+        $filters = [],
+        $tag = null,
+        $sort = null,
+        $page = 1
+    ) : \Illuminate\Contracts\Pagination\LengthAwarePaginator {
+        $query = ClothingItem::query()->with('images');
         $query = self::filterBlocked($query);
-        $query->with('images');
+
         if ($search) {
             $query->where('title', 'like', "%$search%");
         }
+
+        if ($tag) {
+            $query->whereHas('tags', fn ($q) => $q->where('name', $tag));
+        }
+
         $safeFilters = array_intersect_key($filters, array_flip(self::ALLOWED_ITEM_FILTERS));
         foreach ($safeFilters as $key => $value) {
             $query->where($key, $value);
         }
-        return $query->get();
+
+        if ($sort === 'trending') {
+            $query->withCount('likes')->orderBy('likes_count', 'desc');
+        } else {
+            $query->latest();
+        }
+
+        return $query->paginate(20, ['*'], 'page', $page);
     }
 
     public static function getAdsFeed($search = null, $filters = []) : \Illuminate\Database\Eloquent\Collection
