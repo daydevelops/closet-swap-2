@@ -118,7 +118,13 @@ class FeedService
 
     private static function applyTrendingSort($query) : void
     {
-        $query->withCount('likes')->orderBy('likes_count', 'desc');
+        $query->withCount('likes')
+              ->where('status', 'available')
+              ->orderBy('likes_count', 'desc');
+
+        if (auth('sanctum')->check()) {
+            $query->where('user_id', '!=', auth('sanctum')->id());
+        }
     }
 
     private static function filterBlocked($query) : \Illuminate\Database\Eloquent\Builder

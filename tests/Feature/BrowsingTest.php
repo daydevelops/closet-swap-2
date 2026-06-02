@@ -126,6 +126,55 @@ test('latest feed shows all items to guests', function () {
     $this->assertContains($item->id, $ids);
 });
 
+test('trending feed only shows available items', function () {
+    // Give both items enough likes to rank on page 1 above existing seed data
+    $likers        = User::factory()->count(30)->create();
+    $availableItem = ClothingItem::factory()->create(['status' => 'available']);
+    $soldItem      = ClothingItem::factory()->create(['status' => 'sold']);
+    foreach ($likers as $liker) {
+        $liker->likes()->attach([$availableItem->id, $soldItem->id]);
+    }
+
+    $response = $this->getJson(route('dashboard', ['sort' => 'trending']));
+    $response->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->toArray();
+    $this->assertContains($availableItem->id, $ids);
+    $this->assertNotContains($soldItem->id, $ids);
+});
+
+test('trending feed excludes the authenticated user\'s own items', function () {
+    $user    = User::factory()->create();
+    $likers  = User::factory()->count(30)->create();
+    $ownItem = ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
+    $otherItem = ClothingItem::factory()->create(['status' => 'available']);
+    foreach ($likers as $liker) {
+        $liker->likes()->attach([$ownItem->id, $otherItem->id]);
+    }
+
+    $this->actingAs($user);
+    $response = $this->getJson(route('dashboard', ['sort' => 'trending']));
+    $response->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->toArray();
+    $this->assertNotContains($ownItem->id, $ids);
+    $this->assertContains($otherItem->id, $ids);
+});
+
+test('trending feed shows all available items to guests', function () {
+    $likers = User::factory()->count(30)->create();
+    $item   = ClothingItem::factory()->create(['status' => 'available']);
+    foreach ($likers as $liker) {
+        $liker->likes()->attach($item->id);
+    }
+
+    $response = $this->getJson(route('dashboard', ['sort' => 'trending']));
+    $response->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->toArray();
+    $this->assertContains($item->id, $ids);
+});
+
 test('a user can search for other users', function () {
 
 });
