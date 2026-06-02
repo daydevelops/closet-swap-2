@@ -11,18 +11,21 @@ class BrowseController extends Controller
 {
     public function dashboard(Request $request) : JsonResponse
     {
-        $feed = FeedService::getItemFeed(
-            $request->query('search') ?? null,
-            $request->query('filters') ?? []
+        $paginated = FeedService::getItemFeed(
+            $request->query('search'),
+            $request->query('filters') ?? [],
+            $request->query('tag'),
+            $request->query('sort'),
+            $request->query('page', 1)
         );
 
-        $result = $feed->map(function ($item) {
+        $paginated->getCollection()->transform(function ($item) {
             $data = $item->toArray();
             $data['images'] = ImageService::signedUrls($item->images);
             return $data;
         });
 
-        return response()->json($result);
+        return response()->json($paginated);
     }
 
     public function wantedAds(Request $request) : JsonResponse
