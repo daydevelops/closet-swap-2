@@ -102,7 +102,7 @@ test('a user can not see a user\'s profile items if they are blocked', function 
 
     $response = $this->getJson(route('profile.items', $blockedUser));
     $response->assertOk();
-    $responseIds = collect($response->json())->pluck('id')->toArray();
+    $responseIds = collect($response->json('data'))->pluck('id')->toArray();
     $this->assertNotContains($item->id, $responseIds);
 });
 
@@ -116,7 +116,7 @@ test('a user only sees items belonging to the viewed user on their profile', fun
 
     $response = $this->getJson(route('profile.items', $profileUser));
     $response->assertOk();
-    $responseIds = collect($response->json())->pluck('id')->toArray();
+    $responseIds = collect($response->json('data'))->pluck('id')->toArray();
     $this->assertContains($profileItem->id, $responseIds);
     $this->assertNotContains($otherItem->id, $responseIds);
 });

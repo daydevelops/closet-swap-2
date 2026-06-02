@@ -1,20 +1,12 @@
 <?php
 
-use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
 
+// Superseded by 2025_07_14_000001_seed_demo_users_and_items — kept as a no-op
+// so migrate:reset can find and roll back this entry in the migrations table.
 return new class extends Migration
 {
-    public function up(): void
-    {
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'mona@test.com',
-        ]);
-    }
+    public function up(): void {}
 
-    public function down(): void
-    {
-        User::where('email', 'mona@test.com')->delete();
-    }
+    public function down(): void {}
 };
