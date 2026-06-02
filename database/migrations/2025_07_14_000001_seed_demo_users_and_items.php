@@ -47,12 +47,41 @@ return new class extends Migration
         // Pre-load type names once to use in titles
         $typeNames = CiType::pluck('name', 'id')->toArray();
 
+        // --- Test user (known credentials for manual testing) ---
+        $testUser = User::factory()->create([
+            'name'  => 'Test User',
+            'email' => 'mona@test.com',
+        ]);
+
+        for ($j = 0; $j < 20; $j++) {
+            $typeId   = array_rand($typeNames);
+            $typeName = $typeNames[$typeId];
+            $adj      = $this->adjectives[array_rand($this->adjectives)];
+
+            $item = ClothingItemFactory::new()->create([
+                'user_id'     => $testUser->id,
+                'title'       => "{$adj} {$typeName}",
+                'description' => $this->descriptions[array_rand($this->descriptions)],
+                'brand'       => $this->brands[array_rand($this->brands)],
+                'ci_type_id'  => $typeId,
+                'status'      => $this->randomStatus(),
+            ]);
+
+            $imageCount = rand(1, 3);
+            for ($k = 0; $k < $imageCount; $k++) {
+                ClothingItemImageFactory::new()->create([
+                    'clothing_item_id' => $item->id,
+                ]);
+            }
+        }
+
+        // --- 20 random demo users ---
         for ($i = 1; $i <= 20; $i++) {
             $user = User::factory()->create([
                 'email' => "demo.{$i}@demo.test",
             ]);
 
-            $itemCount = rand(0, 30);
+            $itemCount = rand(20, 50);
 
             for ($j = 0; $j < $itemCount; $j++) {
                 $typeId   = array_rand($typeNames);
@@ -81,7 +110,10 @@ return new class extends Migration
     public function down(): void
     {
         $userIds = DB::table('users')
-            ->where('email', 'like', '%@demo.test')
+            ->where(function ($q) {
+                $q->where('email', 'like', '%@demo.test')
+                  ->orWhere('email', 'mona@test.com');
+            })
             ->pluck('id')
             ->toArray();
 

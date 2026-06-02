@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\ClothingItem;
 use App\Models\User;
+use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -33,7 +34,7 @@ class ProfileController extends Controller
         return response()->json($data);
     }
 
-    public function items(User $user): JsonResponse
+    public function items(User $user, Request $request): JsonResponse
     {
         $query = ClothingItem::where('user_id', $user->id)->with('images');
 
@@ -41,7 +42,15 @@ class ProfileController extends Controller
             $query->notBlocked();
         }
 
-        return response()->json($query->get());
+        $paginated = $query->paginate(20, ['*'], 'page', $request->query('page', 1));
+
+        $paginated->getCollection()->transform(function ($item) {
+            $data = $item->toArray();
+            $data['images'] = ImageService::signedUrls($item->images);
+            return $data;
+        });
+
+        return response()->json($paginated);
     }
 
     /**
