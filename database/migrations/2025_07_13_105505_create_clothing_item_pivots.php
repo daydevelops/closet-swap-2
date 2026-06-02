@@ -39,8 +39,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tags_items');
-        Schema::dropIfExists('materials_items');
-        Schema::dropIfExists('colors_items');
+        Schema::dropIfExists('ci_tag_item');
+        Schema::dropIfExists('ci_material_item');
+        Schema::dropIfExists('ci_color_item');
     }
 };
