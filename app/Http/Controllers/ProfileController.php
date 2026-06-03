@@ -27,8 +27,15 @@ class ProfileController extends Controller
             'avatar_url' => $user->avatar_url,
         ];
 
-        if (auth()->check()) {
-            $data['is_following'] = auth()->user()->isFollowing($user);
+        $viewer = auth('sanctum')->user();
+
+        if ($viewer) {
+            $data['is_following'] = $viewer->isFollowing($user);
+
+            // Only expose contact handle to authenticated + verified users
+            if ($viewer->hasVerifiedEmail()) {
+                $data['contact_handle'] = $user->contact_handle;
+            }
         }
 
         return response()->json($data);
