@@ -8,6 +8,7 @@ class CiOption extends Model
 {
     protected $fillable = [
         'name',
+        'category',
     ];
 
     public function clothingItems()

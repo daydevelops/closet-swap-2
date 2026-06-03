@@ -30,7 +30,7 @@ class StoreClothingItemRequest extends FormRequest
             'fit' => 'required|exists:ci_fits,id',
             'condition' => 'required|exists:ci_conditions,id',
             'units' => 'nullable|exists:ci_units,id',
-            'brand' => 'required|string|max:255',
+            'brand' => 'nullable|string|max:255',
             'tags' => 'array',
             'colors' => 'array',
             'materials' => 'array',

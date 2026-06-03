@@ -44,8 +44,12 @@ return new class extends Migration
 
     public function up(): void
     {
-        // Pre-load type names once to use in titles
-        $typeNames = CiType::pluck('name', 'id')->toArray();
+        // Pre-load type data once
+        // Note: ci_types.category and ci_sizes.category don't exist yet at this point —
+        // they're added in a later migration. Shoe sizes are also seeded later.
+        // The KAN-92 migration retroactively fixes item sizes for shoe types after seeding.
+        $typeNames   = CiType::pluck('name', 'id')->toArray();
+        $allSizeIds  = \App\Models\CiSize::pluck('id')->toArray();
 
         // --- Test user (known credentials for manual testing) ---
         $testUser = User::factory()->create([
@@ -57,13 +61,13 @@ return new class extends Migration
             $typeId   = array_rand($typeNames);
             $typeName = $typeNames[$typeId];
             $adj      = $this->adjectives[array_rand($this->adjectives)];
-
             $item = ClothingItemFactory::new()->create([
                 'user_id'     => $testUser->id,
                 'title'       => "{$adj} {$typeName}",
                 'description' => $this->descriptions[array_rand($this->descriptions)],
                 'brand'       => $this->brands[array_rand($this->brands)],
                 'ci_type_id'  => $typeId,
+                'ci_size_id'  => $allSizeIds[array_rand($allSizeIds)],
                 'status'      => $this->randomStatus(),
             ]);
 
@@ -91,13 +95,13 @@ return new class extends Migration
                 $typeId   = array_rand($typeNames);
                 $typeName = $typeNames[$typeId];
                 $adj      = $this->adjectives[array_rand($this->adjectives)];
-
                 $item = ClothingItemFactory::new()->create([
                     'user_id'     => $user->id,
                     'title'       => "{$adj} {$typeName}",
                     'description' => $this->descriptions[array_rand($this->descriptions)],
                     'brand'       => $this->brands[array_rand($this->brands)],
                     'ci_type_id'  => $typeId,
+                    'ci_size_id'  => $allSizeIds[array_rand($allSizeIds)],
                     'status'      => $this->randomStatus(),
                 ]);
 
