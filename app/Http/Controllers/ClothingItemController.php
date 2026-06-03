@@ -22,8 +22,9 @@ class ClothingItemController extends Controller
     public function create()
     {
         return response()->json([
-            'types' => CiType::select('id','name')->get(),
-            'sizes' => CiSize::select('id','name')->get(),
+            'types'      => CiType::select('id', 'name', 'category')->get(),
+            'sizes'      => CiSize::where('category', 'clothing')->select('id', 'name')->get(),
+            'shoe_sizes' => CiSize::where('category', 'shoe')->select('id', 'name')->get(),
             'fits' => CiFit::select('id','name')->get(),
             'conditions' => CiCondition::select('id','name')->get(),
             'units' => CiUnit::select('id','name')->get(),
@@ -48,7 +49,7 @@ class ClothingItemController extends Controller
             'ci_fit_id'       => $request->fit,
             'ci_condition_id' => $request->condition,
             'ci_units_id'     => $request->units,
-            'brand'           => $request->brand,
+            'brand'           => $request->brand ?: 'Unknown',
             'user_id'         => $request->user()->id,
             'status'          => 'available',
         ]);
