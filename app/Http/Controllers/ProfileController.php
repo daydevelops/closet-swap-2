@@ -31,11 +31,7 @@ class ProfileController extends Controller
 
         if ($viewer) {
             $data['is_following'] = $viewer->isFollowing($user);
-
-            // Only expose contact handle to authenticated + verified users
-            if ($viewer->hasVerifiedEmail()) {
-                $data['contact_handle'] = $user->contact_handle;
-            }
+            $data['contact_handle'] = $user->contact_handle;
         }
 
         return response()->json($data);

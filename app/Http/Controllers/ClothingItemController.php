@@ -99,6 +99,8 @@ class ClothingItemController extends Controller
                 'name'       => $clothingItem->user->name,
                 'avatar_url' => $clothingItem->user->avatar_url,
             ];
+
+            $item['user']['contact_handle'] = $clothingItem->user->contact_handle;
         }
 
         $item['liked'] = auth('sanctum')->check()
