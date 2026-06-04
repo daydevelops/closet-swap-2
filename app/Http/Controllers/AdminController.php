@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Report;
 use App\Models\User;
 use App\Notifications\AccountDeletedNotification;
 use Illuminate\Http\JsonResponse;
@@ -78,5 +79,35 @@ class AdminController extends Controller
         $user->delete();
 
         return response()->json(['message' => 'User deleted successfully.']);
+    }
+
+    public function reports(User $user): JsonResponse
+    {
+        $reports = Report::with('reporter:id,name')
+            ->where('reported_user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn ($r) => [
+                'id'               => $r->id,
+                'reason'           => $r->reason,
+                'details'          => $r->details,
+                'status'           => $r->status,
+                'created_at'       => $r->created_at,
+                'reported_by_id'   => $r->reported_by,
+                'reported_by_name' => $r->reporter?->name,
+            ]);
+
+        return response()->json($reports);
+    }
+
+    public function updateReport(Request $request, Report $report): JsonResponse
+    {
+        $request->validate([
+            'status' => 'required|in:reviewed,dismissed',
+        ]);
+
+        $report->update(['status' => $request->status]);
+
+        return response()->json(['message' => 'Report updated.']);
     }
 }

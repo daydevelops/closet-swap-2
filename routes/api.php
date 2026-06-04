@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\BrowseController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ClothingItemController;
 
 use Illuminate\Support\Facades\Route;
@@ -44,6 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
     Route::get('/users/search', [ProfileController::class, 'search'])->name('users.search');
+    Route::post('/report/{user}', [ReportController::class, 'store'])->middleware('throttle:5,60')->name('report.store');
 
     Route::prefix('profile')->group(function () {
         Route::get('/{user}', [ProfileController::class, 'show'])->name('profile.show');
@@ -83,6 +85,8 @@ Route::middleware(['auth:sanctum', 'verified', 'admin'])->prefix('admin')->group
     Route::get('/users', [AdminController::class, 'index']);
     Route::get('/users/{user}', [AdminController::class, 'show']);
     Route::delete('/users/{user}', [AdminController::class, 'destroy']);
+    Route::get('/users/{user}/reports', [AdminController::class, 'reports']);
+    Route::patch('/reports/{report}', [AdminController::class, 'updateReport']);
 });
 
 Route::fallback(fn () => response()->json(['message' => 'Not found.'], 404));
