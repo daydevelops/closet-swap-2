@@ -11,6 +11,7 @@ use App\Http\Controllers\Auth\PasswordForgotController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\BrowseController;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ClothingItemController;
 
 use Illuminate\Support\Facades\Route;
@@ -74,6 +75,12 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::patch('/{clothingItem}', [ClothingItemController::class, 'update'])->name('items.update');
         Route::delete('/{clothingItem}', [ClothingItemController::class, 'destroy'])->name('items.destroy');
     });
+});
+
+Route::middleware(['auth:sanctum', 'verified', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/users', [AdminController::class, 'index']);
+    Route::get('/users/{user}', [AdminController::class, 'show']);
+    Route::delete('/users/{user}', [AdminController::class, 'destroy']);
 });
 
 Route::fallback(fn () => response()->json(['message' => 'Not found.'], 404));

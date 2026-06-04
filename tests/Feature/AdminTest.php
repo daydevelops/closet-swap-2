@@ -50,7 +50,7 @@ test('admin can list users with pagination', function () {
 
 test('admin can search users by name', function () {
     $admin = User::factory()->admin()->create();
-    $target = User::factory()->create(['name' => 'UniqueNameXYZ']);
+    User::factory()->create(['name' => 'UniqueNameXYZ']);
     User::factory()->create(['name' => 'Someone Else']);
 
     $response = $this->actingAs($admin)->getJson('/api/admin/users?search=UniqueNameXYZ');
@@ -94,13 +94,14 @@ test('admin can delete a user with a reason', function () {
 
     $admin = User::factory()->admin()->create();
     $user = User::factory()->create();
+    $path = 'images/' . \Illuminate\Support\Str::uuid() . '.jpg';
     $item = ClothingItem::factory()->create(['user_id' => $user->id]);
     $image = ClothingItemImage::factory()->create([
         'clothing_item_id' => $item->id,
-        'path' => 'images/test.jpg',
+        'path' => $path,
     ]);
 
-    Storage::disk('s3')->put('images/test.jpg', 'fake');
+    Storage::disk('s3')->put($path, 'fake');
 
     $response = $this->actingAs($admin)
         ->deleteJson("/api/admin/users/{$user->id}", ['reason' => 'Violated community guidelines.']);
@@ -111,7 +112,7 @@ test('admin can delete a user with a reason', function () {
     $this->assertDatabaseMissing('clothing_items', ['id' => $item->id]);
     $this->assertDatabaseMissing('clothing_item_images', ['id' => $image->id]);
 
-    Storage::disk('s3')->assertMissing('images/test.jpg');
+    Storage::disk('s3')->assertMissing($path);
 
     Notification::assertSentTo($user, AccountDeletedNotification::class, function ($n) {
         return $n->reason === 'Violated community guidelines.';

@@ -28,7 +28,7 @@ class AdminController extends Controller
             'name'              => $user->name,
             'email'             => $user->email,
             'created_at'        => $user->created_at,
-            'email_verified_at' => $user->email_verified_at,
+            'email_verified_at'  => $user->email_verified_at,
             'item_count'        => $user->clothing_items_count,
             'is_admin'          => $user->is_admin,
         ]);
