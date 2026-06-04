@@ -70,6 +70,7 @@ class AdminController extends Controller
                 }
                 $image->delete();
             }
+            $item->likes()->detach();
             $item->delete();
         }
 
