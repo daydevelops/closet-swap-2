@@ -83,6 +83,23 @@ test('search returns paginated results', function () {
         ->assertJsonStructure(['data', 'current_page', 'total', 'per_page']);
 });
 
+test('search results include is_following status', function () {
+    $user = User::factory()->create();
+    $followed = User::factory()->create(['name' => 'FollowedUser']);
+    $notFollowed = User::factory()->create(['name' => 'FollowedUser']);
+
+    $user->follow($followed);
+
+    $response = $this->actingAs($user)
+        ->getJson(route('users.search', ['q' => 'FollowedUser']));
+
+    $response->assertOk();
+    $data = collect($response->json('data'));
+
+    expect($data->firstWhere('id', $followed->id)['is_following'])->toBeTrue();
+    expect($data->firstWhere('id', $notFollowed->id)['is_following'])->toBeFalse();
+});
+
 test('search results only contain public-safe fields', function () {
     $user = User::factory()->create();
     User::factory()->create(['name' => 'SafeFieldsUser']);

@@ -65,16 +65,19 @@ class ProfileController extends Controller
             ->merge($user->blockedBy->pluck('id'))
             ->unique();
 
+        $followingIds = $user->followings()->pluck('users.id')->flip();
+
         $results = User::where('name', 'like', '%' . $request->q . '%')
             ->where('id', '!=', $user->id)
             ->whereNotIn('id', $blockedIds)
             ->paginate(20);
 
         $results->getCollection()->transform(fn ($u) => [
-            'id'         => $u->id,
-            'name'       => $u->name,
-            'bio'        => $u->bio,
-            'avatar_url' => $u->avatar_url ?? null,
+            'id'           => $u->id,
+            'name'         => $u->name,
+            'bio'          => $u->bio,
+            'avatar_url'   => $u->avatar_url ?? null,
+            'is_following' => $followingIds->has($u->id),
         ]);
 
         return response()->json($results);
