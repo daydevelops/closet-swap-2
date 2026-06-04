@@ -7,6 +7,41 @@ use App\Notifications\AccountDeletedNotification;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
+// --- Item moderation ---
+
+test('admin can delete any users clothing item', function () {
+    Storage::fake('s3');
+
+    $admin = User::factory()->admin()->create();
+    $owner = User::factory()->create();
+    $liker = User::factory()->create();
+
+    $path = 'images/' . \Illuminate\Support\Str::uuid() . '.jpg';
+    $item = ClothingItem::factory()->create(['user_id' => $owner->id]);
+    $item->likes()->attach($liker->id);
+    ClothingItemImage::factory()->create(['clothing_item_id' => $item->id, 'path' => $path]);
+    Storage::disk('s3')->put($path, 'fake');
+
+    $this->actingAs($admin)
+        ->deleteJson(route('items.destroy', $item->id))
+        ->assertOk();
+
+    $this->assertDatabaseMissing('clothing_items', ['id' => $item->id]);
+    Storage::disk('s3')->assertMissing($path);
+});
+
+test('non-admin cannot delete another users clothing item', function () {
+    $user  = User::factory()->create();
+    $owner = User::factory()->create();
+    $item  = ClothingItem::factory()->create(['user_id' => $owner->id]);
+
+    $this->actingAs($user)
+        ->deleteJson(route('items.destroy', $item->id))
+        ->assertStatus(403);
+
+    $this->assertDatabaseHas('clothing_items', ['id' => $item->id]);
+});
+
 // --- Access control ---
 
 test('unauthenticated users cannot access admin user list', function () {

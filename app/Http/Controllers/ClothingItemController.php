@@ -164,6 +164,7 @@ class ClothingItemController extends Controller
             $image->delete();
         }
 
+        $clothingItem->likes()->detach();
         $clothingItem->colors()->detach();
         $clothingItem->materials()->detach();
         $clothingItem->tags()->detach();

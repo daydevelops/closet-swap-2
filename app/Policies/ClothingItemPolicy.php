@@ -45,7 +45,7 @@ class ClothingItemPolicy
      */
     public function delete(User $user, ClothingItem $clothingItem): bool
     {
-        return $user->id === $clothingItem->user_id;
+        return $user->is_admin || $user->id === $clothingItem->user_id;
     }
 
     /**
