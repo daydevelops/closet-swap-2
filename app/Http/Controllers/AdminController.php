@@ -13,7 +13,7 @@ class AdminController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = User::withCount('clothingItems');
+        $query = User::withCount(['clothingItems', 'reports']);
 
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
@@ -31,6 +31,7 @@ class AdminController extends Controller
             'created_at'        => $user->created_at,
             'email_verified_at'  => $user->email_verified_at,
             'item_count'        => $user->clothing_items_count,
+            'report_count'      => $user->reports_count,
             'is_admin'          => $user->is_admin,
         ]);
 
