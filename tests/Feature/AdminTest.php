@@ -95,7 +95,9 @@ test('admin can delete a user with a reason', function () {
     $admin = User::factory()->admin()->create();
     $user = User::factory()->create();
     $path = 'images/' . \Illuminate\Support\Str::uuid() . '.jpg';
+    $liker = User::factory()->create();
     $item = ClothingItem::factory()->create(['user_id' => $user->id]);
+    $item->likes()->attach($liker->id); // ensure likes are cleaned up before item delete
     $image = ClothingItemImage::factory()->create([
         'clothing_item_id' => $item->id,
         'path' => $path,

@@ -26,7 +26,7 @@ class LoginController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'user' => $user,
+            'user' => array_merge($user->toArray(), ['is_admin' => $user->is_admin]),
             'access_token' => $token,
             'token_type' => 'Bearer',
         ]);
