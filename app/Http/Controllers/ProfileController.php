@@ -56,6 +56,30 @@ class ProfileController extends Controller
         return response()->json($paginated);
     }
 
+    public function search(Request $request): JsonResponse
+    {
+        $request->validate(['q' => 'required|string|min:1|max:100']);
+
+        $user = auth()->user();
+        $blockedIds = $user->blocks->pluck('id')
+            ->merge($user->blockedBy->pluck('id'))
+            ->unique();
+
+        $results = User::where('name', 'like', '%' . $request->q . '%')
+            ->where('id', '!=', $user->id)
+            ->whereNotIn('id', $blockedIds)
+            ->paginate(20);
+
+        $results->getCollection()->transform(fn ($u) => [
+            'id'         => $u->id,
+            'name'       => $u->name,
+            'bio'        => $u->bio,
+            'avatar_url' => $u->avatar_url ?? null,
+        ]);
+
+        return response()->json($results);
+    }
+
     /**
      * Update the user's profile information.
      */

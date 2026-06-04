@@ -43,6 +43,8 @@ Route::middleware('auth:sanctum')->group(function () {
 // Auth + verified email required for all other protected routes
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
+    Route::get('/users/search', [ProfileController::class, 'search'])->name('users.search');
+
     Route::prefix('profile')->group(function () {
         Route::get('/{user}', [ProfileController::class, 'show'])->name('profile.show');
         Route::get('/{user}/items', [ProfileController::class, 'items'])->name('profile.items');
