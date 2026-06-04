@@ -78,10 +78,10 @@ test('a user cannot create a clothing item with missing required fields', functi
     $response->assertJsonValidationErrors(['gender']);
     $this->assertDatabaseCount('clothing_items', $itemCount);
 
-    // Missing brand → 422, no DB change
-    $response = $this->actingAs($user)->postJson(route('items.store'), array_diff_key(validItemPayload(), ['brand' => '']));
+    // Missing condition → 422, no DB change
+    $response = $this->actingAs($user)->postJson(route('items.store'), array_diff_key(validItemPayload(), ['condition' => '']));
     $response->assertStatus(422);
-    $response->assertJsonValidationErrors(['brand']);
+    $response->assertJsonValidationErrors(['condition']);
     $this->assertDatabaseCount('clothing_items', $itemCount);
 });
 
