@@ -76,6 +76,10 @@ class AdminController extends Controller
             $item->delete();
         }
 
+        if ($user->avatar_path && ! str_starts_with($user->avatar_path, 'http')) {
+            Storage::disk('s3')->delete($user->avatar_path);
+        }
+
         $user->tokens()->delete();
         $user->delete();
 
