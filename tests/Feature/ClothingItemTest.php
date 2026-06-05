@@ -251,3 +251,71 @@ test('a user can not mark a clothing item as taken that they do not own', functi
 test('a user can start a chat for a clothing item', function () {
 
 });
+
+// --- Image management ---
+
+test('owner can add images to an existing item', function () {
+    Storage::fake('s3');
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)->postJson(route('items.images.add', $item), [
+        'pictures' => [UploadedFile::fake()->image('new.jpg')],
+    ]);
+
+    $response->assertStatus(201);
+    $this->assertDatabaseHas('clothing_item_images', ['clothing_item_id' => $item->id]);
+    expect(count($response->json()))->toBe(1);
+    expect($response->json('0.id'))->not->toBeNull();
+});
+
+test('non-owner cannot add images to an item', function () {
+    Storage::fake('s3');
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $item  = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id]);
+
+    $this->actingAs($other)->postJson(route('items.images.add', $item), [
+        'pictures' => [UploadedFile::fake()->image('new.jpg')],
+    ])->assertStatus(403);
+});
+
+test('owner can delete an image from their item', function () {
+    Storage::fake('s3');
+    $user  = User::factory()->create();
+    $item  = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+    $image = \App\Models\ClothingItemImage::factory()->create([
+        'clothing_item_id' => $item->id,
+        'path' => 'images/' . \Illuminate\Support\Str::uuid() . '.jpg',
+    ]);
+    Storage::disk('s3')->put($image->path, 'fake');
+
+    $this->actingAs($user)
+        ->deleteJson(route('items.images.destroy', [$item, $image]))
+        ->assertOk();
+
+    $this->assertDatabaseMissing('clothing_item_images', ['id' => $image->id]);
+    Storage::disk('s3')->assertMissing($image->path);
+});
+
+test('non-owner cannot delete an image', function () {
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $item  = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id]);
+    $image = \App\Models\ClothingItemImage::factory()->create(['clothing_item_id' => $item->id]);
+
+    $this->actingAs($other)
+        ->deleteJson(route('items.images.destroy', [$item, $image]))
+        ->assertStatus(403);
+});
+
+test('cannot delete an image belonging to a different item', function () {
+    $user   = User::factory()->create();
+    $item1  = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+    $item2  = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+    $image  = \App\Models\ClothingItemImage::factory()->create(['clothing_item_id' => $item2->id]);
+
+    $this->actingAs($user)
+        ->deleteJson(route('items.images.destroy', [$item1, $image]))
+        ->assertStatus(404);
+});

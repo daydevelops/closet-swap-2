@@ -79,6 +79,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/{clothingItem}', [ClothingItemController::class, 'show'])->name('items.show');
         Route::patch('/{clothingItem}', [ClothingItemController::class, 'update'])->name('items.update');
         Route::patch('/{clothingItem}/status', [ClothingItemController::class, 'updateStatus'])->name('items.status');
+        Route::post('/{clothingItem}/images', [ClothingItemController::class, 'addImages'])->name('items.images.add');
+        Route::delete('/{clothingItem}/images/{image}', [ClothingItemController::class, 'destroyImage'])->name('items.images.destroy');
         Route::delete('/{clothingItem}', [ClothingItemController::class, 'destroy'])->name('items.destroy');
     });
 });

@@ -16,7 +16,6 @@ use App\Models\CiColors;
 use App\Models\CiMaterial;
 use App\Models\CiGender;
 use App\Services\ImageService;
-use Illuminate\Support\Facades\Storage;
 
 class ClothingItemController extends Controller
 {
@@ -164,6 +163,51 @@ class ClothingItemController extends Controller
         return response()->json(['message' => 'Status updated successfully'], 200);
     }
 
+    public function addImages(Request $request, ClothingItem $clothingItem)
+    {
+        if (!auth()->user()->can('update', $clothingItem)) {
+            abort(403);
+        }
+
+        $request->validate([
+            'pictures'   => 'required|array|min:1',
+            'pictures.*' => 'file|mimes:jpg,jpeg,png,PNG,webp|max:5120',
+        ]);
+
+        $imageService = new ImageService();
+        $added = [];
+
+        foreach ($request->file('pictures') as $file) {
+            $path = $imageService->upload($file);
+            if (!$path) {
+                return response()->json(['message' => 'Image upload failed'], 500);
+            }
+            $image = $clothingItem->images()->create(['path' => $path]);
+            $added[] = [
+                'id'         => $image->id,
+                'signed_url' => ImageService::signedUrl($path),
+            ];
+        }
+
+        return response()->json($added, 201);
+    }
+
+    public function destroyImage(ClothingItem $clothingItem, \App\Models\ClothingItemImage $image)
+    {
+        if (!auth()->user()->can('update', $clothingItem)) {
+            abort(403);
+        }
+
+        if ($image->clothing_item_id !== $clothingItem->id) {
+            abort(404);
+        }
+
+        ImageService::delete($image->path);
+        $image->delete();
+
+        return response()->json(['message' => 'Image deleted successfully'], 200);
+    }
+
     /**
      * Remove the specified resource from storage.
      */
@@ -174,9 +218,7 @@ class ClothingItemController extends Controller
         }
 
         foreach ($clothingItem->images as $image) {
-            if (!str_starts_with($image->path, 'http')) {
-                Storage::disk('s3')->delete($image->path);
-            }
+            ImageService::delete($image->path);
             $image->delete();
         }
 

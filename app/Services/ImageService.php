@@ -22,9 +22,27 @@ class ImageService
     {
         return $images->map(fn ($image) => [
             'id'         => $image->id,
-            'signed_url' => str_starts_with($image->path, 'http')
-                ? $image->path
-                : Storage::disk('s3')->temporaryUrl($image->path, now()->addMinutes(10)),
+            'signed_url' => self::signedUrl($image->path),
         ])->toArray();
+    }
+
+    /**
+     * Generate a 10-minute signed URL for a single S3 path.
+     * External URLs are returned as-is.
+     */
+    public static function signedUrl(string $path): string
+    {
+        if (str_starts_with($path, 'http')) return $path;
+        return Storage::disk('s3')->temporaryUrl($path, now()->addMinutes(10));
+    }
+
+    /**
+     * Delete a file from S3. No-ops on external URLs.
+     */
+    public static function delete(string $path): void
+    {
+        if (!str_starts_with($path, 'http')) {
+            Storage::disk('s3')->delete($path);
+        }
     }
 }

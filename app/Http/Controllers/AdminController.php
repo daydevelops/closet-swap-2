@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Report;
 use App\Models\User;
 use App\Notifications\AccountDeletedNotification;
+use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
 {
@@ -67,17 +67,15 @@ class AdminController extends Controller
 
         foreach ($user->clothingItems as $item) {
             foreach ($item->images as $image) {
-                if (! str_starts_with($image->path, 'http')) {
-                    Storage::disk('s3')->delete($image->path);
-                }
+                ImageService::delete($image->path);
                 $image->delete();
             }
             $item->likes()->detach();
             $item->delete();
         }
 
-        if ($user->avatar_path && ! str_starts_with($user->avatar_path, 'http')) {
-            Storage::disk('s3')->delete($user->avatar_path);
+        if ($user->avatar_path) {
+            ImageService::delete($user->avatar_path);
         }
 
         $user->tokens()->delete();
