@@ -174,8 +174,74 @@ test('an authenticated user can view a clothing item', function () {
              ->assertJsonStructure(['item' => ['id', 'title'], 'images']);
 });
 
-test('a user can mark a clothing item as taken', function () {
+test('an owner can update their item status to sold', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
 
+    $this->actingAs($user)
+        ->patchJson(route('items.status', $item), ['status' => 'sold'])
+        ->assertOk();
+
+    expect($item->fresh()->status)->toBe('sold');
+});
+
+test('an owner can update their item status to donated', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
+
+    $this->actingAs($user)
+        ->patchJson(route('items.status', $item), ['status' => 'donated'])
+        ->assertOk();
+
+    expect($item->fresh()->status)->toBe('donated');
+});
+
+test('an owner can update their item status to swapped', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
+
+    $this->actingAs($user)
+        ->patchJson(route('items.status', $item), ['status' => 'swapped'])
+        ->assertOk();
+
+    expect($item->fresh()->status)->toBe('swapped');
+});
+
+test('an owner can set their item back to available', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'sold']);
+
+    $this->actingAs($user)
+        ->patchJson(route('items.status', $item), ['status' => 'available'])
+        ->assertOk();
+
+    expect($item->fresh()->status)->toBe('available');
+});
+
+test('an invalid status returns 422', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+
+    $this->actingAs($user)
+        ->patchJson(route('items.status', $item), ['status' => 'broken'])
+        ->assertStatus(422);
+});
+
+test('a non-owner cannot update item status', function () {
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id]);
+
+    $this->actingAs($other)
+        ->patchJson(route('items.status', $item), ['status' => 'sold'])
+        ->assertStatus(403);
+});
+
+test('unauthenticated users cannot update item status', function () {
+    $item = \App\Models\ClothingItem::factory()->create();
+
+    $this->patchJson(route('items.status', $item), ['status' => 'sold'])
+        ->assertStatus(401);
 });
 
 test('a user can not mark a clothing item as taken that they do not own', function () {

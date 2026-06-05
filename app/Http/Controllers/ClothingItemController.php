@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreClothingItemRequest;
 use App\Http\Requests\UpdateClothingItemRequest;
+use Illuminate\Http\Request;
 use App\Models\ClothingItem;
 use App\Models\CiType;
 use App\Models\CiSize;
@@ -146,6 +147,21 @@ class ClothingItemController extends Controller
         }
 
         return response()->json(['message' => 'Item updated successfully'], 200);
+    }
+
+    public function updateStatus(Request $request, ClothingItem $clothingItem)
+    {
+        if (!auth()->user()->can('update', $clothingItem)) {
+            abort(403);
+        }
+
+        $request->validate([
+            'status' => 'required|in:available,sold,donated,swapped',
+        ]);
+
+        $clothingItem->update(['status' => $request->status]);
+
+        return response()->json(['message' => 'Status updated successfully'], 200);
     }
 
     /**
