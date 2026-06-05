@@ -252,6 +252,49 @@ test('a user can start a chat for a clothing item', function () {
 
 });
 
+// --- items_given_count observer ---
+
+test('items_given_count increments when status changes to a completed status', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
+
+    $this->actingAs($user)->patchJson(route('items.status', $item), ['status' => 'swapped']);
+
+    expect($user->fresh()->items_given_count)->toBe(1);
+});
+
+test('items_given_count decrements when status changes back to available', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'swapped']);
+    $user->increment('items_given_count'); // simulate it having been counted
+
+    $this->actingAs($user)->patchJson(route('items.status', $item), ['status' => 'available']);
+
+    expect($user->fresh()->items_given_count)->toBe(0);
+});
+
+test('items_given_count is preserved when a completed item is deleted', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
+
+    // Mark as swapped → count goes to 1
+    $this->actingAs($user)->patchJson(route('items.status', $item), ['status' => 'swapped']);
+    expect($user->fresh()->items_given_count)->toBe(1);
+
+    // Delete the item → count stays at 1
+    $this->actingAs($user)->deleteJson(route('items.destroy', $item));
+    expect($user->fresh()->items_given_count)->toBe(1);
+});
+
+test('items_given_count does not increment when a non-completed item is deleted', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
+
+    $this->actingAs($user)->deleteJson(route('items.destroy', $item));
+
+    expect($user->fresh()->items_given_count)->toBe(0);
+});
+
 // --- Photo limit ---
 
 test('cannot create an item with more than 8 photos', function () {
