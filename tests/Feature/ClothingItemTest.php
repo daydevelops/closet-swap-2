@@ -252,6 +252,48 @@ test('a user can start a chat for a clothing item', function () {
 
 });
 
+// --- Photo limit ---
+
+test('cannot create an item with more than 8 photos', function () {
+    Storage::fake('s3');
+    $user = User::factory()->create();
+
+    $pictures = array_fill(0, 9, UploadedFile::fake()->image('photo.jpg'));
+
+    $this->actingAs($user)
+        ->postJson(route('items.store'), array_merge(validItemPayload(), ['pictures' => $pictures]))
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['pictures']);
+});
+
+test('cannot add images past the 8 photo limit', function () {
+    Storage::fake('s3');
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+
+    // Add 7 existing images
+    for ($i = 0; $i < 7; $i++) {
+        \App\Models\ClothingItemImage::factory()->create(['clothing_item_id' => $item->id]);
+    }
+
+    // Adding 2 more would exceed 8
+    $this->actingAs($user)
+        ->postJson(route('items.images.add', $item), [
+            'pictures' => [
+                UploadedFile::fake()->image('a.jpg'),
+                UploadedFile::fake()->image('b.jpg'),
+            ],
+        ])
+        ->assertStatus(422);
+
+    // Adding exactly 1 more is fine
+    $this->actingAs($user)
+        ->postJson(route('items.images.add', $item), [
+            'pictures' => [UploadedFile::fake()->image('c.jpg')],
+        ])
+        ->assertStatus(201);
+});
+
 // --- Image management ---
 
 test('owner can add images to an existing item', function () {
