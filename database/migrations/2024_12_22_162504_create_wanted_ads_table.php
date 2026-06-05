@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('wanted_ads', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained();
+            $table->foreignUuid('user_id')->constrained();
             $table->string('title');
             $table->text('description');
             $table->string('category');

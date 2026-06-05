@@ -25,7 +25,7 @@ return new class extends Migration
             $table->json('tags')->nullable();
             $table->json('materials')->nullable();
             $table->json('colors')->nullable();
-            $table->foreignId('user_id')->constrained();
+            $table->foreignUuid('user_id')->constrained();
             $table->string('status');
             $table->timestamps();
         });
@@ -36,6 +36,8 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::disableForeignKeyConstraints();
         Schema::dropIfExists('clothing_items');
+        Schema::enableForeignKeyConstraints();
     }
 };

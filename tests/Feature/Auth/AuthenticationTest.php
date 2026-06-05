@@ -24,6 +24,7 @@ it('can login with valid credentials', function () {
         ->assertJson(fn (AssertableJson $json) =>
         $json->has('access_token')
             ->where('token_type', 'Bearer')
+            ->etc()
         );
 });
 

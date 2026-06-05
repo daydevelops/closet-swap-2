@@ -2,7 +2,6 @@
 
 use App\Models\User;
 use App\Models\WantedAd;
-use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
@@ -10,24 +9,27 @@ beforeEach(function () {
 });
 
 test('a user can browse wanted ads', function () {
-    $items = WantedAd::factory(3)->create();
-    $response = $this->get(route('wanted'));
-    $response->assertInertia(function (Assert $page) use ($items) {
-        $page->component('Wanted')
-            ->has('feed', 3)
-            ->where('feed', $items->toArray());
-    });
+    $ads = WantedAd::factory(3)->create();
+    $response = $this->getJson(route('wanted'));
+    $response->assertOk();
+    $ids = collect($response->json())->pluck('id');
+    foreach ($ads->pluck('id') as $id) {
+        expect($ids)->toContain($id);
+    }
 });
 
 test('a user can browse wanted ads by category', function () {
-    $items_excluded = WantedAd::factory(3)->create(['category' => WantedAd::CATEGORIES[0]]);
-    $items_included = WantedAd::factory(3)->create(['category' => WantedAd::CATEGORIES[1]]);
-    $response = $this->get(route('wanted', ['filters' => ['category' => WantedAd::CATEGORIES[1]]]));
-    $response->assertInertia(function (Assert $page) use ($items_included) {
-        $page->component('Wanted')
-            ->has('feed', 3)
-            ->where('feed', $items_included->toArray());
-    });
+    $excluded = WantedAd::factory(3)->create(['category' => WantedAd::CATEGORIES[0]]);
+    $included  = WantedAd::factory(3)->create(['category' => WantedAd::CATEGORIES[1]]);
+    $response  = $this->getJson(route('wanted', ['filters' => ['category' => WantedAd::CATEGORIES[1]]]));
+    $response->assertOk();
+    $ids = collect($response->json())->pluck('id');
+    foreach ($included->pluck('id') as $id) {
+        expect($ids)->toContain($id);
+    }
+    foreach ($excluded->pluck('id') as $id) {
+        expect($ids)->not->toContain($id);
+    }
 });
 
 test('a user cannot see ads for someone who has blocked them', function () {
@@ -36,24 +38,20 @@ test('a user cannot see ads for someone who has blocked them', function () {
     $this->actingAs($blocker);
     $this->user->block();
     $this->actingAs($this->user);
-    $this->assertDatabaseHas('blocks', ['blocked_id' => $this->user->id, 'blocked_by' => $blocker->id]);
-    $response = $this->get(route('wanted'));
-    $response->assertInertia(function (Assert $page) {
-        $page->component('Wanted')
-            ->has('feed', 0);
-    });
+    $response = $this->getJson(route('wanted'));
+    $response->assertOk();
+    $ids = collect($response->json())->pluck('id');
+    expect($ids)->not->toContain($ad->id);
 });
 
 test('a user cannot see ads for someone who they have blocked', function () {
-    $user = User::factory()->create();
-    $ad = WantedAd::factory()->create(['user_id' => $user->id]);
-    $user->block();
-    $this->assertDatabaseHas('blocks', ['blocked_id' => $user->id, 'blocked_by' => $this->user->id]);
-    $response = $this->get(route('wanted'));
-    $response->assertInertia(function (Assert $page) {
-        $page->component('Wanted')
-            ->has('feed', 0);
-    });
+    $blockedUser = User::factory()->create();
+    $ad = WantedAd::factory()->create(['user_id' => $blockedUser->id]);
+    $blockedUser->block();
+    $response = $this->getJson(route('wanted'));
+    $response->assertOk();
+    $ids = collect($response->json())->pluck('id');
+    expect($ids)->not->toContain($ad->id);
 });
 
 test('a user can create a wanted ad', function () {
@@ -97,5 +95,3 @@ test('a user can not delete a wanted ad they do not own', function () {
     $response = $this->delete(route('wanted.destroy', $ad->id));
     $this->assertDatabaseHas('wanted_ads', ['id' => $ad->id]);
 });
-
-

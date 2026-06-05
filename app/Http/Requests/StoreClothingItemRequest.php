@@ -25,15 +25,17 @@ class StoreClothingItemRequest extends FormRequest
             'title' => 'required|string|max:140',
             'description' => 'required|string|max:1000',
             'type' => 'required|exists:ci_types,id',
+            'gender' => 'required|exists:ci_genders,id',
             'size' => 'required|exists:ci_sizes,id',
             'fit' => 'required|exists:ci_fits,id',
             'condition' => 'required|exists:ci_conditions,id',
             'units' => 'nullable|exists:ci_units,id',
+            'brand' => 'nullable|string|max:255',
             'tags' => 'array',
             'colors' => 'array',
             'materials' => 'array',
 
-            'pictures' => 'required|array|min:1',
+            'pictures' => 'required|array|min:1|max:' . config('items.max_photos'),
             'pictures.*' => 'file|mimes:jpg,jpeg,png,PNG,webp|max:5120', // max is in kilobytes = 5MB
         ];
     }

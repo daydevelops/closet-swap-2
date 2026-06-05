@@ -13,7 +13,7 @@ class ClothingItemFactory extends Factory
     {
         return [
             'title' => $this->faker->sentence(3),
-            'description' => $this->faker->paragraph(),
+            'description' => $this->faker->text(500),
             'brand' => $this->faker->company(),
             'ci_type_id' => \App\Models\CiType::inRandomOrder()->first()?->id,
             'ci_gender_id' => \App\Models\CiGender::inRandomOrder()->first()?->id,

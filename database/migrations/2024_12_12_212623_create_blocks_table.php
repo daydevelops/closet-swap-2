@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('blocks', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('blocked_by')->constrained('users')->onDelete('cascade');
-            $table->foreignId('blocked_id')->constrained('users')->onDelete('cascade');
+            $table->foreignUuid('blocked_by')->constrained('users')->onDelete('cascade');
+            $table->foreignUuid('blocked_id')->constrained('users')->onDelete('cascade');
             $table->timestamps();
         });
         Schema::table('blocks', function (Blueprint $table) {

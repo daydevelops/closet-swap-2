@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\FilterBlocked;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -10,9 +11,22 @@ class ClothingItem extends Model
 {
     /** @use HasFactory<\Database\Factories\ClothingItemFactory> */
     use HasFactory;
+    use HasUuids;
     use FilterBlocked;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'title',
+        'description',
+        'brand',
+        'ci_type_id',
+        'ci_gender_id',
+        'ci_size_id',
+        'ci_units_id',
+        'ci_fit_id',
+        'ci_condition_id',
+        'user_id',
+        'status',
+    ];
 
     protected $casts = [];
 
@@ -28,7 +42,7 @@ class ClothingItem extends Model
 
     public function likes()
     {
-        return $this->belongsToMany(User::class, 'likes');
+        return $this->belongsToMany(User::class, 'likes')->withTimestamps();
     }
 
     public function colors()
