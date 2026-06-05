@@ -2,16 +2,18 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasFactory, Notifiable, HasApiTokens, HasUuids;
 
     /**
      * The attributes that are mass assignable.
@@ -22,6 +24,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'bio',
+        'contact_handle',
+        'avatar_path',
     ];
 
     /**
@@ -32,7 +37,11 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'is_admin',
+        'avatar_path',
     ];
+
+    protected $appends = ['avatar_url'];
 
     /**
      * Get the attributes that should be cast.
@@ -44,7 +53,15 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_admin' => 'boolean',
         ];
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (!$this->avatar_path) return null;
+        if (str_starts_with($this->avatar_path, 'http')) return $this->avatar_path;
+        return Storage::disk('s3')->temporaryUrl($this->avatar_path, now()->addHours(24));
     }
 
     public function clothingItems()
@@ -144,7 +161,12 @@ class User extends Authenticatable
 
     public function likes()
     {
-        return $this->belongsToMany(ClothingItem::class, 'likes');
+        return $this->belongsToMany(ClothingItem::class, 'likes')->withTimestamps();
+    }
+
+    public function reports()
+    {
+        return $this->hasMany(\App\Models\Report::class, 'reported_user_id');
     }
 
 }

@@ -1,6 +1,5 @@
 <?php
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
 // test a clothing item knows its images
 test('a clothing item knows its images', function () {

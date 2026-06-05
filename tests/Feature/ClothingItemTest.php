@@ -1,35 +1,247 @@
 <?php
 
+use App\Models\CiCondition;
+use App\Models\CiFit;
+use App\Models\CiGender;
+use App\Models\CiSize;
+use App\Models\CiType;
+use App\Models\CiUnit;
+use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+
+/**
+ * Returns a valid item payload using the first seeded option from each lookup table.
+ * Tests that need to omit or override specific fields can use array_diff_key / array_merge.
+ */
+function validItemPayload(): array
+{
+    return [
+        'title'       => 'Test Jacket',
+        'description' => 'A great jacket in excellent condition.',
+        'type'        => CiType::first()->id,
+        'gender'      => CiGender::first()->id,
+        'size'        => CiSize::first()->id,
+        'fit'         => CiFit::first()->id,
+        'condition'   => CiCondition::first()->id,
+        'brand'       => 'Zara',
+        'pictures'    => [UploadedFile::fake()->image('jacket.jpg')],
+    ];
+}
+
 test('a user can upload images for a clothing item', function () {
 
 });
 
 test('a user can create a clothing item', function () {
+    Storage::fake('s3');
 
-    // given I am an authenticated user
-    // when I hit the endpoint /api/clothing-items
-    // then I receive a 201 status code
-    // and the clothing item is stored in the database
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->postJson(route('items.store'), validItemPayload());
+
+    $response->assertStatus(201);
+    $this->assertDatabaseHas('clothing_items', [
+        'title'   => 'Test Jacket',
+        'brand'   => 'Zara',
+        'user_id' => $user->id,
+    ]);
+});
+
+test('a user can create a clothing item with units', function () {
+    Storage::fake('s3');
+
+    $user = User::factory()->create();
+    $unit = CiUnit::first();
+
+    $response = $this->actingAs($user)->postJson(route('items.store'), array_merge(validItemPayload(), [
+        'units' => $unit->id,
+    ]));
+
+    $response->assertStatus(201);
+    $this->assertDatabaseHas('clothing_items', [
+        'title'        => 'Test Jacket',
+        'user_id'      => $user->id,
+        'ci_units_id'  => $unit->id,
+    ]);
+});
+
+test('a user cannot create a clothing item with missing required fields', function () {
+    Storage::fake('s3');
+
+    $user = User::factory()->create();
+    $itemCount = \App\Models\ClothingItem::count();
+
+    // Missing gender → 422, no DB change
+    $response = $this->actingAs($user)->postJson(route('items.store'), array_diff_key(validItemPayload(), ['gender' => '']));
+    $response->assertStatus(422);
+    $response->assertJsonValidationErrors(['gender']);
+    $this->assertDatabaseCount('clothing_items', $itemCount);
+
+    // Missing condition → 422, no DB change
+    $response = $this->actingAs($user)->postJson(route('items.store'), array_diff_key(validItemPayload(), ['condition' => '']));
+    $response->assertStatus(422);
+    $response->assertJsonValidationErrors(['condition']);
+    $this->assertDatabaseCount('clothing_items', $itemCount);
+});
+
+test('a user can create a clothing item with colors, materials, and tags', function () {
+    Storage::fake('s3');
+    $user     = User::factory()->create();
+    $color    = \App\Models\CiColors::first();
+    $material = \App\Models\CiMaterial::first();
+    $tag      = \App\Models\CiTags::first();
+
+    $response = $this->actingAs($user)->postJson(route('items.store'), array_merge(validItemPayload(), [
+        'colors'    => [$color->name],
+        'materials' => [$material->name],
+        'tags'      => [$tag->name],
+    ]));
+
+    $response->assertStatus(201);
+    $item = \App\Models\ClothingItem::find($response->json('id'));
+    expect($item->colors->pluck('name')->toArray())->toContain($color->name);
+    expect($item->materials->pluck('name')->toArray())->toContain($material->name);
+    expect($item->tags->pluck('name')->toArray())->toContain($tag->name);
 });
 
 test('a user can update a clothing item', function () {
+    Storage::fake('s3');
 
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)->patchJson(route('items.update', $item), [
+        'title' => 'Updated Title',
+        'brand' => 'Foobar',
+    ]);
+
+    $response->assertStatus(200);
+    $this->assertDatabaseHas('clothing_items', [
+        'id'    => $item->id,
+        'title' => 'Updated Title',
+        'brand' => 'Foobar',
+    ]);
 });
 
 test('a user can not update a clothing item they do not own', function () {
+    Storage::fake('s3');
 
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $item  = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id]);
+
+    $response = $this->actingAs($other)->patchJson(route('items.update', $item), [
+        'title' => 'Hacked Title',
+    ]);
+
+    $response->assertStatus(403);
+    $this->assertDatabaseMissing('clothing_items', ['title' => 'Hacked Title']);
 });
 
 test('a user can delete a clothing item', function () {
+    Storage::fake('s3');
 
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)->deleteJson(route('items.destroy', $item));
+
+    $response->assertStatus(200);
+    $this->assertDatabaseMissing('clothing_items', ['id' => $item->id]);
 });
 
 test('a user can not delete a clothing item they do not own', function () {
+    Storage::fake('s3');
 
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $item  = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id]);
+
+    $response = $this->actingAs($other)->deleteJson(route('items.destroy', $item));
+
+    $response->assertStatus(403);
+    $this->assertDatabaseHas('clothing_items', ['id' => $item->id]);
 });
 
-test('a user can mark a clothing item as taken', function () {
+test('an authenticated user can view a clothing item', function () {
+    Storage::fake('s3');
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
 
+    $response = $this->actingAs($user)->getJson(route('items.show', $item));
+    $response->assertStatus(200)
+             ->assertJsonStructure(['item' => ['id', 'title'], 'images']);
+});
+
+test('an owner can update their item status to sold', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
+
+    $this->actingAs($user)
+        ->patchJson(route('items.status', $item), ['status' => 'sold'])
+        ->assertOk();
+
+    expect($item->fresh()->status)->toBe('sold');
+});
+
+test('an owner can update their item status to donated', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
+
+    $this->actingAs($user)
+        ->patchJson(route('items.status', $item), ['status' => 'donated'])
+        ->assertOk();
+
+    expect($item->fresh()->status)->toBe('donated');
+});
+
+test('an owner can update their item status to swapped', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
+
+    $this->actingAs($user)
+        ->patchJson(route('items.status', $item), ['status' => 'swapped'])
+        ->assertOk();
+
+    expect($item->fresh()->status)->toBe('swapped');
+});
+
+test('an owner can set their item back to available', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'sold']);
+
+    $this->actingAs($user)
+        ->patchJson(route('items.status', $item), ['status' => 'available'])
+        ->assertOk();
+
+    expect($item->fresh()->status)->toBe('available');
+});
+
+test('an invalid status returns 422', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+
+    $this->actingAs($user)
+        ->patchJson(route('items.status', $item), ['status' => 'broken'])
+        ->assertStatus(422);
+});
+
+test('a non-owner cannot update item status', function () {
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id]);
+
+    $this->actingAs($other)
+        ->patchJson(route('items.status', $item), ['status' => 'sold'])
+        ->assertStatus(403);
+});
+
+test('unauthenticated users cannot update item status', function () {
+    $item = \App\Models\ClothingItem::factory()->create();
+
+    $this->patchJson(route('items.status', $item), ['status' => 'sold'])
+        ->assertStatus(401);
 });
 
 test('a user can not mark a clothing item as taken that they do not own', function () {
@@ -40,3 +252,155 @@ test('a user can start a chat for a clothing item', function () {
 
 });
 
+// --- items_given_count observer ---
+
+test('items_given_count increments when status changes to a completed status', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
+
+    $this->actingAs($user)->patchJson(route('items.status', $item), ['status' => 'swapped']);
+
+    expect($user->fresh()->items_given_count)->toBe(1);
+});
+
+test('items_given_count decrements when status changes back to available', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'swapped']);
+    $user->increment('items_given_count'); // simulate it having been counted
+
+    $this->actingAs($user)->patchJson(route('items.status', $item), ['status' => 'available']);
+
+    expect($user->fresh()->items_given_count)->toBe(0);
+});
+
+test('items_given_count is preserved when a completed item is deleted', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
+
+    // Mark as swapped → count goes to 1
+    $this->actingAs($user)->patchJson(route('items.status', $item), ['status' => 'swapped']);
+    expect($user->fresh()->items_given_count)->toBe(1);
+
+    // Delete the item → count stays at 1
+    $this->actingAs($user)->deleteJson(route('items.destroy', $item));
+    expect($user->fresh()->items_given_count)->toBe(1);
+});
+
+test('items_given_count does not increment when a non-completed item is deleted', function () {
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
+
+    $this->actingAs($user)->deleteJson(route('items.destroy', $item));
+
+    expect($user->fresh()->items_given_count)->toBe(0);
+});
+
+// --- Photo limit ---
+
+test('cannot create an item with more than 8 photos', function () {
+    Storage::fake('s3');
+    $user = User::factory()->create();
+
+    $pictures = array_fill(0, 9, UploadedFile::fake()->image('photo.jpg'));
+
+    $this->actingAs($user)
+        ->postJson(route('items.store'), array_merge(validItemPayload(), ['pictures' => $pictures]))
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['pictures']);
+});
+
+test('cannot add images past the 8 photo limit', function () {
+    Storage::fake('s3');
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+
+    // Add 7 existing images
+    for ($i = 0; $i < 7; $i++) {
+        \App\Models\ClothingItemImage::factory()->create(['clothing_item_id' => $item->id]);
+    }
+
+    // Adding 2 more would exceed 8
+    $this->actingAs($user)
+        ->postJson(route('items.images.add', $item), [
+            'pictures' => [
+                UploadedFile::fake()->image('a.jpg'),
+                UploadedFile::fake()->image('b.jpg'),
+            ],
+        ])
+        ->assertStatus(422);
+
+    // Adding exactly 1 more is fine
+    $this->actingAs($user)
+        ->postJson(route('items.images.add', $item), [
+            'pictures' => [UploadedFile::fake()->image('c.jpg')],
+        ])
+        ->assertStatus(201);
+});
+
+// --- Image management ---
+
+test('owner can add images to an existing item', function () {
+    Storage::fake('s3');
+    $user = User::factory()->create();
+    $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)->postJson(route('items.images.add', $item), [
+        'pictures' => [UploadedFile::fake()->image('new.jpg')],
+    ]);
+
+    $response->assertStatus(201);
+    $this->assertDatabaseHas('clothing_item_images', ['clothing_item_id' => $item->id]);
+    expect(count($response->json()))->toBe(1);
+    expect($response->json('0.id'))->not->toBeNull();
+});
+
+test('non-owner cannot add images to an item', function () {
+    Storage::fake('s3');
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $item  = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id]);
+
+    $this->actingAs($other)->postJson(route('items.images.add', $item), [
+        'pictures' => [UploadedFile::fake()->image('new.jpg')],
+    ])->assertStatus(403);
+});
+
+test('owner can delete an image from their item', function () {
+    Storage::fake('s3');
+    $user  = User::factory()->create();
+    $item  = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+    $image = \App\Models\ClothingItemImage::factory()->create([
+        'clothing_item_id' => $item->id,
+        'path' => 'images/' . \Illuminate\Support\Str::uuid() . '.jpg',
+    ]);
+    Storage::disk('s3')->put($image->path, 'fake');
+
+    $this->actingAs($user)
+        ->deleteJson(route('items.images.destroy', [$item, $image]))
+        ->assertOk();
+
+    $this->assertDatabaseMissing('clothing_item_images', ['id' => $image->id]);
+    Storage::disk('s3')->assertMissing($image->path);
+});
+
+test('non-owner cannot delete an image', function () {
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $item  = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id]);
+    $image = \App\Models\ClothingItemImage::factory()->create(['clothing_item_id' => $item->id]);
+
+    $this->actingAs($other)
+        ->deleteJson(route('items.images.destroy', [$item, $image]))
+        ->assertStatus(403);
+});
+
+test('cannot delete an image belonging to a different item', function () {
+    $user   = User::factory()->create();
+    $item1  = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+    $item2  = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id]);
+    $image  = \App\Models\ClothingItemImage::factory()->create(['clothing_item_id' => $item2->id]);
+
+    $this->actingAs($user)
+        ->deleteJson(route('items.images.destroy', [$item1, $image]))
+        ->assertStatus(404);
+});
