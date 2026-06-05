@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
@@ -98,9 +97,8 @@ class ProfileController extends Controller
         $user->avatar_path = $path;
         $user->save();
 
-        // Delete previous avatar from S3
-        if ($old_path && !str_starts_with($old_path, 'http')) {
-            Storage::disk('s3')->delete($old_path);
+        if ($old_path) {
+            ImageService::delete($old_path);
         }
 
         return response()->json(['avatar_url' => $user->avatar_url]);
@@ -133,8 +131,8 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        if ($user->avatar_path && !str_starts_with($user->avatar_path, 'http')) {
-            Storage::disk('s3')->delete($user->avatar_path);
+        if ($user->avatar_path) {
+            ImageService::delete($user->avatar_path);
         }
 
         $user->tokens()->delete();
