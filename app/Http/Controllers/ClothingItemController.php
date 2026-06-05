@@ -174,6 +174,13 @@ class ClothingItemController extends Controller
             'pictures.*' => 'file|mimes:jpg,jpeg,png,PNG,webp|max:5120',
         ]);
 
+        $existing = $clothingItem->images()->count();
+        $incoming = count($request->file('pictures'));
+        $maxPhotos = config('items.max_photos');
+        if ($existing + $incoming > $maxPhotos) {
+            return response()->json(['message' => "Items are limited to {$maxPhotos} photos."], 422);
+        }
+
         $imageService = new ImageService();
         $added = [];
 

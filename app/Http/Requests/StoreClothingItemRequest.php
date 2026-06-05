@@ -35,7 +35,7 @@ class StoreClothingItemRequest extends FormRequest
             'colors' => 'array',
             'materials' => 'array',
 
-            'pictures' => 'required|array|min:1',
+            'pictures' => 'required|array|min:1|max:' . config('items.max_photos'),
             'pictures.*' => 'file|mimes:jpg,jpeg,png,PNG,webp|max:5120', // max is in kilobytes = 5MB
         ];
     }
