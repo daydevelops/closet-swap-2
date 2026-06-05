@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\ClothingItem;
+use App\Observers\ClothingItemObserver;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\URL;
@@ -24,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        ClothingItem::observe(ClothingItemObserver::class);
+
         // Point email verification links at the React frontend instead of APP_URL
         VerifyEmail::createUrlUsing(function ($notifiable) {
             $signedUrl = URL::temporarySignedRoute(

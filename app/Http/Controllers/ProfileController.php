@@ -30,8 +30,9 @@ class ProfileController extends Controller
         $viewer = auth('sanctum')->user();
 
         if ($viewer) {
-            $data['is_following'] = $viewer->isFollowing($user);
-            $data['contact_handle'] = $user->contact_handle;
+            $data['is_following']      = $viewer->isFollowing($user);
+            $data['contact_handle']    = $user->contact_handle;
+            $data['items_given_count'] = $user->items_given_count;
         }
 
         return response()->json($data);
