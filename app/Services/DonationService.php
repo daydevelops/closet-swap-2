@@ -3,21 +3,22 @@
 namespace App\Services;
 
 use App\Models\Donation;
-use Stripe\Checkout\Session as StripeSession;
-use Stripe\Exception\SignatureVerificationException;
-use Stripe\Stripe;
-use Stripe\Webhook;
 
+/**
+ * Handles donation-specific business logic.
+ *
+ * Delegates all Stripe SDK calls to StripeService.
+ * To add subscriptions, create a SubscriptionService that
+ * follows the same pattern — inject StripeService, own the
+ * domain logic, register event handlers in DonationController.
+ */
 class DonationService
 {
-    public function __construct()
-    {
-        Stripe::setApiKey(config('services.stripe.secret'));
-    }
+    public function __construct(private StripeService $stripe) {}
 
     /**
-     * Create a Stripe Checkout Session and a pending Donation record.
-     * Returns the Stripe-hosted checkout URL.
+     * Create a Stripe Checkout Session for a one-off donation.
+     * Persists a pending Donation record and returns the checkout URL.
      */
     public function createCheckoutSession(int $amountCents): string
     {
@@ -30,7 +31,7 @@ class DonationService
             'status'            => 'pending',
         ]);
 
-        $session = StripeSession::create([
+        $session = $this->stripe->createCheckoutSession([
             'mode'                 => 'payment',
             'payment_method_types' => ['card'],
             'line_items'           => [[
@@ -52,23 +53,7 @@ class DonationService
     }
 
     /**
-     * Parse and verify an incoming Stripe webhook payload.
-     * Returns the verified event object.
-     *
-     * @throws SignatureVerificationException
-     * @throws \UnexpectedValueException
-     */
-    public function constructWebhookEvent(string $payload, ?string $sigHeader): object
-    {
-        return Webhook::constructEvent(
-            $payload,
-            $sigHeader,
-            config('services.stripe.webhook_secret')
-        );
-    }
-
-    /**
-     * Handle a verified checkout.session.completed event.
+     * Handle a verified checkout.session.completed event for a donation.
      */
     public function handleSessionCompleted(object $session): void
     {
