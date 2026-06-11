@@ -2,17 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\HandleStripeWebhookEvent;
 use App\Services\DonationService;
 use App\Services\StripeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Stripe\Exception\ApiErrorException;
 use Stripe\Exception\SignatureVerificationException;
 
 class DonationController extends Controller
 {
     public function __construct(
-        private StripeService  $stripe,
+        private StripeService   $stripe,
         private DonationService $donations,
     ) {}
 
@@ -22,7 +24,17 @@ class DonationController extends Controller
             'amount_cents' => 'required|integer|min:200|max:1000000',
         ]);
 
-        $url = $this->donations->createCheckoutSession($request->amount_cents);
+        try {
+            $url = $this->donations->createCheckoutSession(
+                $request->amount_cents,
+                $request->ip()
+            );
+        } catch (ApiErrorException $e) {
+            return response()->json(
+                ['message' => 'Payment service unavailable. Please try again.'],
+                503
+            );
+        }
 
         return response()->json(['url' => $url]);
     }
@@ -40,19 +52,12 @@ class DonationController extends Controller
             return response('Invalid payload.', 400);
         }
 
-        // Map Stripe event types to handler callbacks.
-        // To add subscriptions, inject SubscriptionService and
-        // register its handlers here in the same pattern.
-        $handlers = [
-            'checkout.session.completed' => fn($data) => $this->donations->handleSessionCompleted($data),
-            // 'customer.subscription.created'   => fn($data) => $this->subscriptions->handleCreated($data),
-            // 'customer.subscription.deleted'   => fn($data) => $this->subscriptions->handleCancelled($data),
-            // 'invoice.payment_succeeded'       => fn($data) => $this->subscriptions->handleRenewal($data),
-        ];
-
-        if (isset($handlers[$event->type])) {
-            $handlers[$event->type]($event->data->object);
-        }
+        // Dispatch asynchronously so we return 200 immediately.
+        // Stripe will retry if it doesn't hear back within a few seconds.
+        HandleStripeWebhookEvent::dispatch(
+            $event->type,
+            json_decode(json_encode($event->data->object), true)
+        );
 
         return response('OK', 200);
     }

@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use Stripe\Exception\SignatureVerificationException;
 use Stripe\Checkout\Session as StripeSession;
+use Stripe\Exception\SignatureVerificationException;
 use Stripe\Stripe;
 use Stripe\Webhook;
 
@@ -23,11 +23,13 @@ class StripeService
 
     /**
      * Create a Stripe Checkout Session with the given parameters.
-     * Callers are responsible for building the full params array.
+     * An optional idempotency key prevents duplicate sessions on retried requests.
      */
-    public function createCheckoutSession(array $params): object
+    public function createCheckoutSession(array $params, ?string $idempotencyKey = null): object
     {
-        return StripeSession::create($params);
+        $opts = $idempotencyKey ? ['idempotency_key' => $idempotencyKey] : [];
+
+        return StripeSession::create($params, $opts);
     }
 
     /**
