@@ -25,7 +25,7 @@ class FeedService
         $sort = null,
         $page = 1
     ) : \Illuminate\Contracts\Pagination\LengthAwarePaginator {
-        $query = ClothingItem::query()->with('images')->withCount('likes');
+        $query = ClothingItem::query()->with('images','size')->withCount('likes');
         $query = self::filterBlocked($query);
 
         if ($search) {
