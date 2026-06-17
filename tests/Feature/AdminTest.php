@@ -2,6 +2,7 @@
 
 use App\Models\ClothingItem;
 use App\Models\ClothingItemImage;
+use App\Models\ContactMessage;
 use App\Models\User;
 use App\Notifications\AccountDeletedNotification;
 use Illuminate\Support\Facades\Notification;
@@ -173,4 +174,73 @@ test('delete without reason returns 422', function () {
     $this->actingAs($admin)
         ->deleteJson("/api/admin/users/{$user->id}")
         ->assertStatus(422);
+});
+
+// --- Contact messages ---
+
+test('admin can list contact messages paginated', function () {
+    $admin = User::factory()->admin()->create();
+    ContactMessage::factory()->count(3)->create();
+
+    $response = $this->actingAs($admin)->getJson('/api/admin/messages');
+
+    $response->assertOk()->assertJsonStructure([
+        'data' => [['id', 'name', 'email', 'subject', 'message', 'read_at', 'created_at', 'user_id', 'user_name']],
+        'current_page',
+        'total',
+    ]);
+});
+
+test('non-admin gets 403 on messages list', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user)->getJson('/api/admin/messages')->assertStatus(403);
+});
+
+test('admin can mark a message as read', function () {
+    $admin = User::factory()->admin()->create();
+    $message = ContactMessage::factory()->create(['read_at' => null]);
+
+    $response = $this->actingAs($admin)
+        ->patchJson("/api/admin/messages/{$message->id}/read");
+
+    $response->assertOk();
+    $this->assertNotNull($response->json('read_at'));
+    $this->assertDatabaseMissing('contact_messages', ['id' => $message->id, 'read_at' => null]);
+});
+
+test('marking already-read message is idempotent', function () {
+    $admin = User::factory()->admin()->create();
+    $readAt = now()->subHour();
+    $message = ContactMessage::factory()->create(['read_at' => $readAt]);
+
+    $response = $this->actingAs($admin)
+        ->patchJson("/api/admin/messages/{$message->id}/read");
+
+    $response->assertOk();
+    expect($message->fresh()->read_at->timestamp)->toBe($readAt->timestamp);
+});
+
+test('admin messages list includes member tag when user is authenticated', function () {
+    $admin = User::factory()->admin()->create();
+    $user = User::factory()->create(['name' => 'Member User']);
+    ContactMessage::factory()->create(['user_id' => $user->id, 'name' => 'Member User']);
+
+    $response = $this->actingAs($admin)->getJson('/api/admin/messages');
+
+    $response->assertOk();
+    $data = $response->json('data');
+    expect($data[0]['user_id'])->toBe($user->id);
+    expect($data[0]['user_name'])->toBe('Member User');
+});
+
+test('admin messages list shows null user fields for guests', function () {
+    $admin = User::factory()->admin()->create();
+    ContactMessage::factory()->create(['user_id' => null]);
+
+    $response = $this->actingAs($admin)->getJson('/api/admin/messages');
+
+    $response->assertOk();
+    $data = $response->json('data');
+    expect($data[0]['user_id'])->toBeNull();
+    expect($data[0]['user_name'])->toBeNull();
 });
