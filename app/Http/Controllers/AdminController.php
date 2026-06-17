@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ContactMessage;
 use App\Models\Report;
 use App\Models\User;
 use App\Notifications\AccountDeletedNotification;
@@ -112,5 +113,41 @@ class AdminController extends Controller
         $report->update(['status' => $request->status]);
 
         return response()->json(['message' => 'Report updated.']);
+    }
+
+    public function messages(): JsonResponse
+    {
+        $messages = ContactMessage::with('user:id,name')
+            ->orderByDesc('created_at')
+            ->paginate(20);
+
+        $messages->getCollection()->transform(fn ($m) => $this->formatMessage($m));
+
+        return response()->json($messages);
+    }
+
+    public function markMessageRead(ContactMessage $message): JsonResponse
+    {
+        if (! $message->read_at) {
+            $message->read_at = now();
+            $message->save();
+        }
+
+        return response()->json($this->formatMessage($message));
+    }
+
+    private function formatMessage(ContactMessage $message): array
+    {
+        return [
+            'id'         => $message->id,
+            'name'       => $message->name,
+            'email'      => $message->email,
+            'subject'    => $message->subject,
+            'message'    => $message->message,
+            'read_at'    => $message->read_at,
+            'created_at' => $message->created_at,
+            'user_id'    => $message->user_id,
+            'user_name'  => $message->user?->name,
+        ];
     }
 }
