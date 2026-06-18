@@ -109,6 +109,13 @@ class User extends Authenticatable implements MustVerifyEmail
             ->exists();
     }
 
+    public function hasBlocked(User $user): bool
+    {
+        return Block::where('blocked_by', $this->id)
+            ->where('blocked_id', $user->id)
+            ->exists();
+    }
+
     /**
      * Users this user is following.
      */

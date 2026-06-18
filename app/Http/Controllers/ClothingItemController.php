@@ -86,6 +86,12 @@ class ClothingItemController extends Controller
     public function show(ClothingItem $clothingItem)
     {
         $clothingItem->load(['user', 'images', 'type', 'size', 'fit', 'condition', 'units', 'gender', 'colors', 'materials', 'tags']);
+
+        $viewer = auth('sanctum')->user();
+        if ($viewer && $clothingItem->user && $clothingItem->user->hasBlocked($viewer)) {
+            abort(404);
+        }
+
         $images = ImageService::signedUrls($clothingItem->images);
 
         $item = $clothingItem->toArray();
