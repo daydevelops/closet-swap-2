@@ -34,7 +34,7 @@ class RegisterController extends Controller
 
         return response()->json([
             'message' => 'User successfully registered.',
-            'user' => array_merge($user->toArray(), ['is_admin' => $user->is_admin]),
+            'user' => $user,
             'access_token' => $token,
             'token_type' => 'Bearer',
         ], 201);
