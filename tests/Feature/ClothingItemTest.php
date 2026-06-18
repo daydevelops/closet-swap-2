@@ -174,6 +174,18 @@ test('an authenticated user can view a clothing item', function () {
              ->assertJsonStructure(['item' => ['id', 'title'], 'images']);
 });
 
+test('a user blocked by the item owner gets 404 on item show', function () {
+    Storage::fake('s3');
+    $owner  = User::factory()->create();
+    $viewer = User::factory()->create();
+    $item   = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id]);
+
+    \App\Models\Block::create(['blocked_by' => $owner->id, 'blocked_id' => $viewer->id]);
+
+    $this->actingAs($viewer)->getJson(route('items.show', $item))->assertStatus(404);
+});
+
+
 test('an owner can update their item status to sold', function () {
     $user = User::factory()->create();
     $item = \App\Models\ClothingItem::factory()->create(['user_id' => $user->id, 'status' => 'available']);
