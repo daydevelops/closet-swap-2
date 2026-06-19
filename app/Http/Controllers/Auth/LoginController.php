@@ -19,7 +19,13 @@ class LoginController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        // Always run a bcrypt check regardless of whether the user exists.
+        // Skipping it when the user is not found would create a measurable timing
+        // difference that an attacker could use to enumerate registered emails.
+        // The dummy hash is a pre-computed bcrypt value that will never match any
+        // real password — it exists solely to keep response time constant.
+        $hash = $user?->password ?? '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi';
+        if (!$user || !Hash::check($request->password, $hash)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
