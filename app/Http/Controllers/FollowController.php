@@ -10,12 +10,12 @@ class FollowController extends Controller
 
     public function followers(Request $request, User $user)
     {
-        return $user->followers;
+        return response()->json($user->followers()->paginate(50));
     }
 
     public function following(Request $request, User $user)
     {
-        return $user->followings;
+        return response()->json($user->followings()->paginate(50));
     }
 
     public function follow(Request $request, User $user)

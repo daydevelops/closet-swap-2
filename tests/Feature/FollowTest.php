@@ -27,18 +27,15 @@ test('a user can unfollow a user', function () {
 });
 
 test('a user can see all users that have followed them', function () {
-    // given another user exists that has followed me
     $users = User::factory()->count(3)->create();
     $this->user->follow($users[0]);
     $this->user->follow($users[1]);
 
-    // if I query my follows
     $response = $this->getJson(route('following', auth()->id()));
-    // then I should see the users that have followed me
-    $response->assertJsonCount(2);
-    // assert the correct users are returned
-    $response->assertJsonFragment($users[0]->toArray());
-    $response->assertJsonFragment($users[1]->toArray());
+
+    $response->assertJsonCount(2, 'data');
+    $response->assertJsonPath('data.0.id', $users[0]->id);
+    $response->assertJsonPath('data.1.id', $users[1]->id);
 });
 
 test('a user can see all users that are following them', function () {
@@ -46,9 +43,10 @@ test('a user can see all users that are following them', function () {
     $users[0]->follow($this->user);
     $users[1]->follow($this->user);
 
-    $response = $this->getJson(route('followers',auth()->id()));
-    $response->assertJsonCount(2);
-    $response->assertJsonFragment($users[0]->toArray());
-    $response->assertJsonFragment($users[1]->toArray());
+    $response = $this->getJson(route('followers', auth()->id()));
+
+    $response->assertJsonCount(2, 'data');
+    $response->assertJsonPath('data.0.id', $users[0]->id);
+    $response->assertJsonPath('data.1.id', $users[1]->id);
 });
 
