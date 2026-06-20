@@ -29,7 +29,7 @@ class FeedService
         $query = self::filterBlocked($query);
 
         if ($search) {
-            $query->where('title', 'like', "%$search%");
+            $query->whereFullText('title', $search);
         }
 
         if ($tag) {
@@ -57,7 +57,7 @@ class FeedService
         $query = WantedAd::query();
         $query = self::filterBlocked($query);
         if ($search) {
-            $query->where('title', 'like', "%$search%");
+            $query->whereFullText('title', $search);
         }
         $safeFilters = array_intersect_key($filters, array_flip(self::ALLOWED_AD_FILTERS));
         foreach ($safeFilters as $key => $value) {
