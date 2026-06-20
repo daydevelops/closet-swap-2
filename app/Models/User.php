@@ -167,7 +167,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function likes()
     {
-        return $this->belongsToMany(ClothingItem::class, 'likes')->withTimestamps();
+        return $this->belongsToMany(ClothingItem::class, 'likes')->using(Like::class)->withTimestamps();
     }
 
     public function reports()

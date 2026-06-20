@@ -42,7 +42,7 @@ class ClothingItem extends Model
 
     public function likes()
     {
-        return $this->belongsToMany(User::class, 'likes')->withTimestamps();
+        return $this->belongsToMany(User::class, 'likes')->using(Like::class)->withTimestamps();
     }
 
     public function colors()
