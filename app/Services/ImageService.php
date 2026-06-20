@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 class ImageService
@@ -33,7 +34,10 @@ class ImageService
     public static function signedUrl(string $path): string
     {
         if (str_starts_with($path, 'http')) return $path;
-        return Storage::disk('s3')->temporaryUrl($path, now()->addMinutes(10));
+
+        return Cache::remember('signed_url:' . $path, 540, function () use ($path) {
+            return Storage::disk('s3')->temporaryUrl($path, now()->addMinutes(10));
+        });
     }
 
     /**
@@ -42,6 +46,7 @@ class ImageService
     public static function delete(string $path): void
     {
         if (!str_starts_with($path, 'http')) {
+            Cache::forget('signed_url:' . $path);
             Storage::disk('s3')->delete($path);
         }
     }
