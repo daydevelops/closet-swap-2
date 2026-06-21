@@ -71,49 +71,105 @@ class FeedService
         /*
          * For You algorithm
          *
-         * We collect every tag from every item the user has ever liked — not just
-         * from one item, but the full union across all likes. For example, if the
-         * user liked two items tagged [Party, Vintage] and [Y2K, Cottagecore],
-         * the tag pool becomes {Party, Vintage, Y2K, Cottagecore}.
+         * Always shows the full global feed (available items, excluding own),
+         * ranked by a priority tier derived from the user's likes and follows:
          *
-         * We then surface any available item that shares at least one tag with
-         * that pool, ordered by recency. An item does not need to have a specific
-         * tag the user once liked — it just needs to overlap with any tag from
-         * any liked item.
+         *   !likes & !follows  →  latest (no personalisation)
+         *   !likes &  follows  →  followed users first, then everyone else
+         *    likes & !follows  →  tag-matched items first, then everyone else
+         *    likes &  follows  →  tag+follow > tag only > follow only > rest
          *
-         * Excluded from results:
-         *  - Items owned by the authenticated user
-         *  - Items the user has already liked
-         *  - Items with status != available
-         *
-         * Falls back to the standard latest feed if the user has no likes yet.
+         * The tag pool is the union of all tags across every item the user has
+         * ever liked. Items the user has already liked are excluded when the
+         * user has likes.
          */
         $user = auth('sanctum')->user();
+
         $likedTagIds = DB::table('ci_tag_item')
             ->join('likes', 'ci_tag_item.clothing_item_id', '=', 'likes.clothing_item_id')
             ->where('likes.user_id', $user->id)
             ->pluck('ci_tag_item.ci_tag_id')
             ->unique();
 
-        if ($likedTagIds->isNotEmpty()) {
-            $query->whereHas('tags', fn ($q) => $q->whereIn('ci_tags.id', $likedTagIds))
-                  ->where('user_id', '!=', $user->id)
-                  ->whereNotIn('id', $user->likes()->pluck('clothing_items.id'))
-                  ->where('status', 'available')
-                  ->latest();
-        } else {
-            self::applyLatestSort($query);
+        $followedIds = $user->followings()->pluck('users.id');
+
+        $hasLikes   = $likedTagIds->isNotEmpty();
+        $hasFollows = $followedIds->isNotEmpty();
+
+        $query->where('status', 'available')
+              ->where('user_id', '!=', $user->id);
+
+        if ($hasLikes) {
+            $query->whereNotIn('id', $user->likes()->pluck('clothing_items.id'));
         }
+
+        if ($hasLikes && $hasFollows) {
+            $tPh = implode(',', array_fill(0, $likedTagIds->count(), '?'));
+            $fPh = implode(',', array_fill(0, $followedIds->count(), '?'));
+            $query->orderByRaw("
+                CASE
+                    WHEN user_id IN ($fPh)
+                     AND EXISTS (
+                         SELECT 1 FROM ci_tag_item
+                         WHERE ci_tag_item.clothing_item_id = clothing_items.id
+                           AND ci_tag_item.ci_tag_id IN ($tPh)
+                     ) THEN 0
+                    WHEN EXISTS (
+                         SELECT 1 FROM ci_tag_item
+                         WHERE ci_tag_item.clothing_item_id = clothing_items.id
+                           AND ci_tag_item.ci_tag_id IN ($tPh)
+                     ) THEN 1
+                    WHEN user_id IN ($fPh) THEN 2
+                    ELSE 3
+                END
+            ", array_merge(
+                $followedIds->values()->toArray(),
+                $likedTagIds->values()->toArray(),
+                $likedTagIds->values()->toArray(),
+                $followedIds->values()->toArray(),
+            ));
+        } elseif ($hasLikes) {
+            $tPh = implode(',', array_fill(0, $likedTagIds->count(), '?'));
+            $query->orderByRaw("
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1 FROM ci_tag_item
+                        WHERE ci_tag_item.clothing_item_id = clothing_items.id
+                          AND ci_tag_item.ci_tag_id IN ($tPh)
+                    ) THEN 0
+                    ELSE 1
+                END
+            ", $likedTagIds->values()->toArray());
+        } elseif ($hasFollows) {
+            $fPh = implode(',', array_fill(0, $followedIds->count(), '?'));
+            $query->orderByRaw(
+                "CASE WHEN user_id IN ($fPh) THEN 0 ELSE 1 END",
+                $followedIds->values()->toArray()
+            );
+        }
+
+        $query->latest();
     }
 
     private static function applyLatestSort($query) : void
     {
-        $query->where('status', 'available')
-              ->latest();
+        $query->where('status', 'available');
 
         if (auth('sanctum')->check()) {
-            $query->where('user_id', '!=', auth('sanctum')->id());
+            $user = auth('sanctum')->user();
+            $query->where('user_id', '!=', $user->id);
+
+            $followedIds = $user->followings()->pluck('users.id');
+            if ($followedIds->isNotEmpty()) {
+                $placeholders = implode(',', array_fill(0, $followedIds->count(), '?'));
+                $query->orderByRaw(
+                    "CASE WHEN user_id IN ($placeholders) THEN 0 ELSE 1 END",
+                    $followedIds->values()->toArray()
+                );
+            }
         }
+
+        $query->latest();
     }
 
     private static function applyTrendingSort($query) : void
