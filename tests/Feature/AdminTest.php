@@ -1,17 +1,19 @@
 <?php
 
+use App\Jobs\DeleteS3Files;
 use App\Models\ClothingItem;
 use App\Models\ClothingItemImage;
 use App\Models\ContactMessage;
 use App\Models\User;
 use App\Notifications\AccountDeletedNotification;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
 
 // --- Item moderation ---
 
 test('admin can delete any users clothing item', function () {
-    Storage::fake('s3');
+    Bus::fake();
 
     $admin = User::factory()->admin()->create();
     $owner = User::factory()->create();
@@ -21,14 +23,13 @@ test('admin can delete any users clothing item', function () {
     $item = ClothingItem::factory()->create(['user_id' => $owner->id]);
     $item->likes()->attach($liker->id);
     ClothingItemImage::factory()->create(['clothing_item_id' => $item->id, 'path' => $path]);
-    Storage::disk('s3')->put($path, 'fake');
 
     $this->actingAs($admin)
         ->deleteJson(route('items.destroy', $item->id))
         ->assertOk();
 
     $this->assertDatabaseMissing('clothing_items', ['id' => $item->id]);
-    Storage::disk('s3')->assertMissing($path);
+    Bus::assertDispatched(DeleteS3Files::class, fn ($job) => in_array($path, $job->paths));
 });
 
 test('non-admin cannot delete another users clothing item', function () {
@@ -125,7 +126,7 @@ test('admin can view user detail', function () {
 // --- User delete ---
 
 test('admin can delete a user with a reason', function () {
-    Storage::fake('s3');
+    Bus::fake();
     Notification::fake();
 
     $admin = User::factory()->admin()->create();
@@ -133,13 +134,11 @@ test('admin can delete a user with a reason', function () {
     $path = 'images/' . \Illuminate\Support\Str::uuid() . '.jpg';
     $liker = User::factory()->create();
     $item = ClothingItem::factory()->create(['user_id' => $user->id]);
-    $item->likes()->attach($liker->id); // ensure likes are cleaned up before item delete
+    $item->likes()->attach($liker->id);
     $image = ClothingItemImage::factory()->create([
         'clothing_item_id' => $item->id,
         'path' => $path,
     ]);
-
-    Storage::disk('s3')->put($path, 'fake');
 
     $response = $this->actingAs($admin)
         ->deleteJson("/api/admin/users/{$user->id}", ['reason' => 'Violated community guidelines.']);
@@ -150,7 +149,7 @@ test('admin can delete a user with a reason', function () {
     $this->assertDatabaseMissing('clothing_items', ['id' => $item->id]);
     $this->assertDatabaseMissing('clothing_item_images', ['id' => $image->id]);
 
-    Storage::disk('s3')->assertMissing($path);
+    Bus::assertDispatched(DeleteS3Files::class, fn ($job) => in_array($path, $job->paths));
 
     Notification::assertSentTo($user, AccountDeletedNotification::class, function ($n) {
         return $n->reason === 'Violated community guidelines.';
