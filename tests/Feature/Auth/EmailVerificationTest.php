@@ -95,6 +95,7 @@ test('registration sends a verification email', function () {
         'email'                 => 'verify@example.com',
         'password'              => 'password',
         'password_confirmation' => 'password',
+        'agreed_to_guidelines'  => true,
     ]);
 
     $response->assertStatus(201);

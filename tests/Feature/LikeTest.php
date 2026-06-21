@@ -72,3 +72,24 @@ test('a user can unlike a clothing item', function () {
         'user_id' => $this->user->id,
     ]);
 });
+
+test('liking a clothing item increments its likes_count', function () {
+    $clothingItem = ClothingItem::factory()->create();
+    $this->post(route('like', $clothingItem));
+    $this->assertDatabaseHas('clothing_items', [
+        'id' => $clothingItem->id,
+        'likes_count' => 1,
+    ]);
+});
+
+test('unliking a clothing item decrements its likes_count', function () {
+    $clothingItem = ClothingItem::factory()->create();
+    $this->user->likes()->attach($clothingItem->id); // observer increments likes_count to 1
+
+    $this->delete(route('unlike', $clothingItem));
+
+    $this->assertDatabaseHas('clothing_items', [
+        'id' => $clothingItem->id,
+        'likes_count' => 0,
+    ]);
+});

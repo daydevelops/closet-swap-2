@@ -37,7 +37,6 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'remember_token',
-        'is_admin',
         'avatar_path',
     ];
 
@@ -110,6 +109,13 @@ class User extends Authenticatable implements MustVerifyEmail
             ->exists();
     }
 
+    public function hasBlocked(User $user): bool
+    {
+        return Block::where('blocked_by', $this->id)
+            ->where('blocked_id', $user->id)
+            ->exists();
+    }
+
     /**
      * Users this user is following.
      */
@@ -161,7 +167,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function likes()
     {
-        return $this->belongsToMany(ClothingItem::class, 'likes')->withTimestamps();
+        return $this->belongsToMany(ClothingItem::class, 'likes')->using(Like::class)->withTimestamps();
     }
 
     public function reports()
