@@ -18,7 +18,6 @@ class LikeController extends Controller
     {
         $paginated = $request->user()->likes()
             ->with('images')
-            ->withCount('likes')
             ->latest('likes.created_at')
             ->paginate(20);
 

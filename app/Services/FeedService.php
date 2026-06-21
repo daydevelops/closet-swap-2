@@ -25,11 +25,11 @@ class FeedService
         $sort = null,
         $page = 1
     ) : \Illuminate\Contracts\Pagination\LengthAwarePaginator {
-        $query = ClothingItem::query()->with('images')->withCount('likes');
+        $query = ClothingItem::query()->with('images','size');
         $query = self::filterBlocked($query);
 
         if ($search) {
-            $query->where('title', 'like', "%$search%");
+            $query->whereFullText('title', $search);
         }
 
         if ($tag) {
@@ -57,7 +57,7 @@ class FeedService
         $query = WantedAd::query();
         $query = self::filterBlocked($query);
         if ($search) {
-            $query->where('title', 'like', "%$search%");
+            $query->whereFullText('title', $search);
         }
         $safeFilters = array_intersect_key($filters, array_flip(self::ALLOWED_AD_FILTERS));
         foreach ($safeFilters as $key => $value) {

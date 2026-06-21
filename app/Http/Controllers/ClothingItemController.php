@@ -21,18 +21,22 @@ class ClothingItemController extends Controller
 {
     public function create()
     {
-        return response()->json([
-            'types'      => CiType::select('id', 'name', 'category')->get(),
-            'sizes'      => CiSize::where('category', 'clothing')->select('id', 'name')->get(),
-            'shoe_sizes' => CiSize::where('category', 'shoe')->select('id', 'name')->get(),
-            'fits' => CiFit::select('id','name')->get(),
-            'conditions' => CiCondition::select('id','name')->get(),
-            'units' => CiUnit::select('id','name')->get(),
-            'genders' => CiGender::select('id','name')->get(),
-            'tags' => CiTags::pluck('name')->toArray(),
-            'colors' => CiColors::pluck('name')->toArray(),
-            'materials' => CiMaterial::pluck('name')->toArray(),
-        ], 200);
+        $data = cache()->remember('item_options', 86400, function () {
+            return [
+                'types'      => CiType::select('id', 'name', 'category')->get(),
+                'sizes'      => CiSize::where('category', 'clothing')->select('id', 'name')->get(),
+                'shoe_sizes' => CiSize::where('category', 'shoe')->select('id', 'name')->get(),
+                'fits'        => CiFit::select('id', 'name')->get(),
+                'conditions' => CiCondition::select('id', 'name')->get(),
+                'units'      => CiUnit::select('id', 'name')->get(),
+                'genders'    => CiGender::select('id', 'name')->get(),
+                'tags'       => CiTags::pluck('name')->toArray(),
+                'colors'     => CiColors::pluck('name')->toArray(),
+                'materials'  => CiMaterial::pluck('name')->toArray(),
+            ];
+        });
+
+        return response()->json($data, 200);
     }
 
     /**
@@ -86,6 +90,12 @@ class ClothingItemController extends Controller
     public function show(ClothingItem $clothingItem)
     {
         $clothingItem->load(['user', 'images', 'type', 'size', 'fit', 'condition', 'units', 'gender', 'colors', 'materials', 'tags']);
+
+        $viewer = auth('sanctum')->user();
+        if ($viewer && $clothingItem->user && $clothingItem->user->hasBlocked($viewer)) {
+            abort(404);
+        }
+
         $images = ImageService::signedUrls($clothingItem->images);
 
         $item = $clothingItem->toArray();

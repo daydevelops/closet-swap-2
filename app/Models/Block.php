@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class Block extends Model
 {
-    protected $guarded = [];
+    protected $fillable = ['blocked_by', 'blocked_id'];
 }

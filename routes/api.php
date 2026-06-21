@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BlockController;
+use App\Http\Controllers\DonationController;
 use App\Http\Controllers\FollowController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\WantedAdController;
@@ -12,10 +13,16 @@ use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\BrowseController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ClothingItemController;
 
 use Illuminate\Support\Facades\Route;
+
+Route::post('/donations/checkout', [DonationController::class, 'checkout'])->name('donations.checkout');
+Route::post('/donations/webhook', [DonationController::class, 'webhook'])->name('donations.webhook');
+
+Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
 
 Route::post('/register', [RegisterController::class, 'register'])->name('register');
 Route::post('/login', [LoginController::class, 'login'])->name('login');
@@ -91,6 +98,8 @@ Route::middleware(['auth:sanctum', 'verified', 'admin'])->prefix('admin')->group
     Route::delete('/users/{user}', [AdminController::class, 'destroy']);
     Route::get('/users/{user}/reports', [AdminController::class, 'reports']);
     Route::patch('/reports/{report}', [AdminController::class, 'updateReport']);
+    Route::get('/messages', [AdminController::class, 'messages']);
+    Route::patch('/messages/{message}/read', [AdminController::class, 'markMessageRead']);
 });
 
 Route::fallback(fn () => response()->json(['message' => 'Not found.'], 404));
