@@ -1,5 +1,7 @@
 FROM php:8.2-fpm-alpine
 
+ARG APP_ENV=staging
+
 # Install system dependencies and PHP extensions
 RUN apk add --no-cache \
     libpng-dev \
@@ -25,7 +27,11 @@ COPY . .
 
 RUN mkdir -p bootstrap/cache storage/logs storage/framework/cache storage/framework/sessions storage/framework/views \
     && chmod -R 775 bootstrap/cache storage \
-    && composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+    && if [ "$APP_ENV" = "production" ]; then \
+         composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev; \
+       else \
+         composer install --no-interaction --prefer-dist --optimize-autoloader; \
+       fi
 
 EXPOSE 9000
 
