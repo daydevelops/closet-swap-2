@@ -1,25 +1,16 @@
-FROM php:8.2-fpm
+FROM php:8.2-fpm-alpine
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
+# Install system dependencies and PHP extensions
+RUN apk add --no-cache \
     libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    locales \
+    libjpeg-turbo-dev \
+    freetype-dev \
     zip \
     unzip \
     git \
     curl \
-    wget
-
-# Install dockerize
-RUN wget https://github.com/jwilder/dockerize/releases/download/v0.6.1/dockerize-linux-amd64-v0.6.1.tar.gz \
-    && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-v0.6.1.tar.gz \
-    && rm dockerize-linux-amd64-v0.6.1.tar.gz
-
-# Install PHP extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    netcat-openbsd \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo_mysql exif pcntl bcmath gd
 
 # PHP config
@@ -28,16 +19,14 @@ COPY docker/php.ini /usr/local/etc/php/conf.d/custom.ini
 # Install Composer
 COPY --from=composer:2.5 /usr/bin/composer /usr/bin/composer
 
-# Set working directory
 WORKDIR /var/www/html
 
-# Copy the application
 COPY . .
 
-# Install Composer dependencies
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+RUN mkdir -p bootstrap/cache storage/logs storage/framework/cache storage/framework/sessions storage/framework/views \
+    && chmod -R 775 bootstrap/cache storage \
+    && composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
-# Expose port
 EXPOSE 9000
 
 CMD ["php-fpm"]

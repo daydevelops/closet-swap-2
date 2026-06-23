@@ -1,10 +1,14 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 # Wait for the database to be ready
-dockerize -wait tcp://db:3306 -timeout 60s
+echo "Waiting for database..."
+until nc -z db 3306; do
+  sleep 1
+done
+echo "Database ready."
 
-if [ "$APP_ENV" == "prod" ]; then
+if [ "$APP_ENV" = "production" ]; then
     php artisan migrate --force
 else
     php artisan migrate:fresh
