@@ -26,6 +26,7 @@ WORKDIR /var/www/html
 COPY . .
 
 RUN mkdir -p bootstrap/cache storage/logs storage/framework/cache storage/framework/sessions storage/framework/views \
+    && chown -R www-data:www-data bootstrap/cache storage \
     && chmod -R 775 bootstrap/cache storage \
     && if [ "$APP_ENV" = "production" ]; then \
          composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev; \
