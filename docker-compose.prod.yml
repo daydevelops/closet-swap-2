@@ -19,6 +19,7 @@ services:
       - NGINX_HOST=${NGINX_HOST:-localhost}
     volumes:
       - ./docker/nginx.conf.template:/etc/nginx/templates/default.conf.template
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     ports:
       - "80:80"
       - "443:443"
