@@ -7,7 +7,6 @@ services:
     dns_opt:
       - ndots:1
     depends_on:
-      - db
       - redis
     networks:
       - closet_network
@@ -28,19 +27,6 @@ services:
     networks:
       - closet_network
 
-  db:
-    image: mysql:8.0
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - db_data:/var/lib/mysql
-    networks:
-      - closet_network
-
   redis:
     image: redis:alpine
     restart: unless-stopped
@@ -55,13 +41,11 @@ services:
     dns_opt:
       - ndots:1
     depends_on:
-      - db
       - redis
     networks:
       - closet_network
 
 volumes:
-  db_data:
 
 networks:
   closet_network:
