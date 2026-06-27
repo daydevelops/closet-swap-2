@@ -45,7 +45,5 @@ services:
     networks:
       - closet_network
 
-volumes:
-
 networks:
   closet_network:
