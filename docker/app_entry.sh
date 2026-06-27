@@ -3,7 +3,7 @@ set -e
 
 # Wait for the database to be ready
 echo "Waiting for database..."
-until nc -z db 3306; do
+until nc -z "${DB_HOST:-db}" 3306; do
   sleep 1
 done
 echo "Database ready."
