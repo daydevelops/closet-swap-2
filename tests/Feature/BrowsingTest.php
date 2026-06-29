@@ -210,7 +210,7 @@ test('for-you feed returns items that share a tag with a liked item', function (
     $this->assertContains($matchingItem->id, $ids);
 });
 
-test('for-you feed returns ONLY items that share a tag with a liked item', function () {
+test('for-you feed ranks tag-matched items above non-matching items', function () {
     // Pick two distinct tags so there's no accidental overlap
     $tags       = \App\Models\CiTags::inRandomOrder()->take(2)->get();
     $likedTag   = $tags->first();
@@ -223,23 +223,44 @@ test('for-you feed returns ONLY items that share a tag with a liked item', funct
     $likedItem = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id, 'status' => 'available']);
     $likedItem->tags()->sync([$likedTag->id]);
 
-    // Item with the matching tag — should appear
-    $matchingItem = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id, 'status' => 'available']);
+    // Matching item (older) — should rank above the non-matching newer item
+    $matchingItem = \App\Models\ClothingItem::factory()->create([
+        'user_id'    => $owner->id,
+        'status'     => 'available',
+        'created_at' => now()->subMinutes(10),
+    ]);
     $matchingItem->tags()->sync([$likedTag->id]);
 
-    // Item with a different tag only — should NOT appear
-    $nonMatchingItem = \App\Models\ClothingItem::factory()->create(['user_id' => $owner->id, 'status' => 'available']);
+    // Non-matching item (newer) — appears in feed but ranked below matching item
+    $nonMatchingItem = \App\Models\ClothingItem::factory()->create([
+        'user_id'    => $owner->id,
+        'status'     => 'available',
+        'created_at' => now()->subMinutes(1),
+    ]);
     $nonMatchingItem->tags()->sync([$otherTag->id]);
 
     $liker->likes()->attach($likedItem->id);
 
     $this->actingAs($liker);
-    $response = $this->getJson(route('dashboard', ['sort' => 'for-you']));
-    $response->assertOk();
 
-    $ids = collect($response->json('data'))->pluck('id')->toArray();
-    $this->assertContains($matchingItem->id, $ids);
-    $this->assertNotContains($nonMatchingItem->id, $ids);
+    // Collect all pages to find both items regardless of feed volume
+    $allIds = collect();
+    $page   = 1;
+    do {
+        $resp   = $this->getJson(route('dashboard', ['sort' => 'for-you', 'page' => $page]));
+        $resp->assertOk();
+        $pageIds = collect($resp->json('data'))->pluck('id');
+        $allIds  = $allIds->concat($pageIds);
+        $lastPage = $resp->json('last_page');
+        $page++;
+    } while ($page <= $lastPage);
+
+    $matchingPos    = $allIds->search($matchingItem->id);
+    $nonMatchingPos = $allIds->search($nonMatchingItem->id);
+
+    $this->assertNotFalse($matchingPos);
+    $this->assertNotFalse($nonMatchingPos);
+    expect($matchingPos)->toBeLessThan($nonMatchingPos);
 });
 
 test('for-you feed excludes the authenticated user\'s own items', function () {
@@ -332,6 +353,126 @@ test('for-you feed falls back to latest for unauthenticated users', function () 
 
     $ids = collect($response->json('data'))->pluck('id')->toArray();
     $this->assertContains($item->id, $ids);
+});
+
+test('latest feed surfaces followed users\' items first', function () {
+    $user    = User::factory()->create();
+    $followed = User::factory()->create();
+    $other    = User::factory()->create();
+
+    // Give followed user an older item and other user a newer one
+    $followedItem = ClothingItem::factory()->create([
+        'user_id'    => $followed->id,
+        'status'     => 'available',
+        'created_at' => now()->subMinutes(10),
+    ]);
+    $otherItem = ClothingItem::factory()->create([
+        'user_id'    => $other->id,
+        'status'     => 'available',
+        'created_at' => now()->subMinutes(1),
+    ]);
+
+    $user->followings()->attach($followed->id);
+
+    $this->actingAs($user);
+    $response = $this->getJson(route('dashboard'));
+    $response->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->values()->toArray();
+    $followedPos = array_search($followedItem->id, $ids);
+    $otherPos    = array_search($otherItem->id, $ids);
+
+    // Followed user's older item should rank above the non-followed newer item
+    expect($followedPos)->toBeLessThan($otherPos);
+});
+
+test('latest feed with no follows uses normal recency order', function () {
+    $user  = User::factory()->create();
+    $older = ClothingItem::factory()->create(['status' => 'available', 'created_at' => now()->subHour()]);
+    $newer = ClothingItem::factory()->create(['status' => 'available', 'created_at' => now()]);
+
+    $this->actingAs($user);
+    $response = $this->getJson(route('dashboard'));
+    $response->assertOk();
+
+    $ids      = collect($response->json('data'))->pluck('id')->values()->toArray();
+    $olderPos = array_search($older->id, $ids);
+    $newerPos = array_search($newer->id, $ids);
+
+    expect($newerPos)->toBeLessThan($olderPos);
+});
+
+test('for-you feed boosts followed users within tag-matched results', function () {
+    $tag     = \App\Models\CiTags::inRandomOrder()->first();
+    $user    = User::factory()->create();
+    $followed = User::factory()->create();
+    $other    = User::factory()->create();
+
+    // Item user liked to build the tag pool
+    $likedItem = ClothingItem::factory()->create(['user_id' => $other->id, 'status' => 'available']);
+    $likedItem->tags()->sync([$tag->id]);
+    $user->likes()->attach($likedItem->id);
+
+    // Followed user's matching item (older)
+    $followedItem = ClothingItem::factory()->create([
+        'user_id'    => $followed->id,
+        'status'     => 'available',
+        'created_at' => now()->subMinutes(10),
+    ]);
+    $followedItem->tags()->sync([$tag->id]);
+
+    // Non-followed user's matching item (newer)
+    $otherItem = ClothingItem::factory()->create([
+        'user_id'    => $other->id,
+        'status'     => 'available',
+        'created_at' => now()->subMinutes(1),
+    ]);
+    $otherItem->tags()->sync([$tag->id]);
+
+    $user->followings()->attach($followed->id);
+
+    $this->actingAs($user);
+    $response = $this->getJson(route('dashboard', ['sort' => 'for-you']));
+    $response->assertOk();
+
+    $ids         = collect($response->json('data'))->pluck('id')->values()->toArray();
+    $followedPos = array_search($followedItem->id, $ids);
+    $otherPos    = array_search($otherItem->id, $ids);
+
+    expect($followedPos)->toBeLessThan($otherPos);
+});
+
+test('for-you feed with no likes boosts followed users but still shows global feed', function () {
+    $user     = User::factory()->create();
+    $followed  = User::factory()->create();
+    $stranger  = User::factory()->create();
+
+    // Followed user's item is older; stranger's is newer — followed should still rank first
+    $followedItem = ClothingItem::factory()->create([
+        'user_id'    => $followed->id,
+        'status'     => 'available',
+        'created_at' => now()->subMinutes(10),
+    ]);
+    $strangerItem = ClothingItem::factory()->create([
+        'user_id'    => $stranger->id,
+        'status'     => 'available',
+        'created_at' => now()->subMinutes(1),
+    ]);
+
+    $user->followings()->attach($followed->id);
+
+    $this->actingAs($user);
+    $response = $this->getJson(route('dashboard', ['sort' => 'for-you']));
+    $response->assertOk();
+
+    $ids         = collect($response->json('data'))->pluck('id')->values()->toArray();
+    $followedPos = array_search($followedItem->id, $ids);
+    $strangerPos = array_search($strangerItem->id, $ids);
+
+    // Both appear, but followed user ranks first despite older timestamp
+    $this->assertNotFalse($followedPos);
+    $this->assertNotFalse($strangerPos);
+    expect($followedPos)->toBeLessThan($strangerPos);
 });
 
 test('a user can not see a user\'s profile items if they are blocked', function () {

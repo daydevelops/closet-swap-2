@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\ClothingItem;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -38,6 +40,25 @@ class ImageService
         return Cache::remember('signed_url:' . $path, 540, function () use ($path) {
             return Storage::disk('s3')->temporaryUrl($path, now()->addMinutes(10));
         });
+    }
+
+    public static function pathsForUser(User $user): array
+    {
+        $paths = $user->clothingItems
+            ->flatMap(fn ($item) => $item->images->pluck('path'))
+            ->values()
+            ->toArray();
+
+        if ($user->avatar_path) {
+            $paths[] = $user->avatar_path;
+        }
+
+        return $paths;
+    }
+
+    public static function pathsForItem(ClothingItem $item): array
+    {
+        return $item->images->pluck('path')->values()->toArray();
     }
 
     /**

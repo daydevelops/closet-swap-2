@@ -22,12 +22,15 @@ use Illuminate\Support\Facades\Route;
 Route::post('/donations/checkout', [DonationController::class, 'checkout'])->name('donations.checkout');
 Route::post('/donations/webhook', [DonationController::class, 'webhook'])->name('donations.webhook');
 
-Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
+Route::post('/contact', [ContactController::class, 'store'])->name('contact.store')->middleware('throttle:3,60');
 
-Route::post('/register', [RegisterController::class, 'register'])->name('register');
-Route::post('/login', [LoginController::class, 'login'])->name('login');
-Route::post('/password/email', [PasswordForgotController::class, 'sendResetLinkEmail'])->name('password.email');
-Route::post('/password/reset', [PasswordResetController::class, 'resetPassword'])->name('password.reset');
+Route::post('/register', [RegisterController::class, 'register'])->name('register')->middleware('throttle:10,60');
+
+Route::middleware('throttle:5,15')->group(function () {
+    Route::post('/login', [LoginController::class, 'login'])->name('login');
+    Route::post('/password/email', [PasswordForgotController::class, 'sendResetLinkEmail'])->name('password.email');
+    Route::post('/password/reset', [PasswordResetController::class, 'resetPassword'])->name('password.reset');
+});
 
 Route::get('/dashboard', [BrowseController::class,'dashboard'])->name('dashboard');
 Route::get('/wanted-ads', [BrowseController::class,'wantedAds'])->name('wanted');
