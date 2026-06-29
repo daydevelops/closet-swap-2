@@ -30,7 +30,7 @@ return new class extends Migration {
             'Other',
         ]);
 
-        $insert('ci_genders', ['Womenswear', 'Menswear', 'Unisex', 'Gender Neutral']);
+        $insert('ci_genders', ['Femme', 'Masc', 'Gender Neutral']);
 
         $insert('ci_sizes', ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'One Size']);
 
@@ -42,16 +42,16 @@ return new class extends Migration {
 
         $insert('ci_tags', [
             // Aesthetics
-            'Goth', 'Cottagecore', 'Boho', 'Indie', 'Dark Academia', 'Light Academia',
-            'Streetwear', 'Y2K', 'Vintage', 'Retro', '90s', '80s', '70s',
-            'Grunge', 'Preppy', 'Old Money', 'Quiet Luxury', 'Minimalist', 'Maximalist',
-            'Punk', 'Kawaii', 'E-Girl', 'E-Boy', 'Alt', 'Skater',
-            'Coastal Grandmother', 'Fairycore', 'Coquette', 'Balletcore',
-            'Gorpcore', 'Techwear', 'Normcore', 'Clean Girl',
+            'Goth',  'Boho', 'Indie', 'Academia',
+            'Streetwear', 'Vintage', 'Retro', '90s', '80s', '70s',
+            'Grunge', 'Preppy', 'Minimalist',
+            'Punk', 'Kawaii', 'Alt', 'Skater',
+            'Coastal Grandmother', 'Fairycore', 'Military',
+            'Techwear', 'Athleisure',
             // Occasion
             'Casual', 'Formal', 'Party', 'Workwear', 'Festival', 'Bridal',
             // Style notes
-            'Statement Piece', 'Basics', 'Designer', 'Handmade', 'Upcycled', 'Deadstock',
+            'Statement Piece', 'Basics', 'Designer', 'Handmade', 'Upcycled',
         ]);
 
         $insert('ci_colors', [
