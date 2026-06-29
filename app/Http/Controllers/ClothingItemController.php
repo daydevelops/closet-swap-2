@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreClothingItemRequest;
 use App\Http\Requests\UpdateClothingItemRequest;
+use App\Jobs\DeleteS3Files;
 use Illuminate\Http\Request;
 use App\Models\ClothingItem;
 use App\Models\CiType;
@@ -234,8 +235,9 @@ class ClothingItemController extends Controller
             abort(403);
         }
 
+        $paths = ImageService::pathsForItem($clothingItem);
+
         foreach ($clothingItem->images as $image) {
-            ImageService::delete($image->path);
             $image->delete();
         }
 
@@ -245,6 +247,10 @@ class ClothingItemController extends Controller
         $clothingItem->tags()->detach();
 
         $clothingItem->delete();
+
+        if ($paths) {
+            DeleteS3Files::dispatch($paths);
+        }
 
         return response()->json(['message' => 'Item deleted successfully'], 200);
     }

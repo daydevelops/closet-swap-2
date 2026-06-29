@@ -1,0 +1,49 @@
+services:
+  app:
+    image: ${ECR_IMAGE}
+    restart: unless-stopped
+    entrypoint: ["/var/www/html/docker/app_entry.sh"]
+    env_file: .env
+    dns_opt:
+      - ndots:1
+    depends_on:
+      - redis
+    networks:
+      - closet_network
+
+  web:
+    image: nginx:alpine
+    restart: unless-stopped
+    environment:
+      - NGINX_HOST=${NGINX_HOST:-localhost}
+    volumes:
+      - ./docker/nginx.conf.template:/etc/nginx/templates/default.conf.template
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - app
+    networks:
+      - closet_network
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    networks:
+      - closet_network
+
+  queue:
+    image: ${ECR_IMAGE}
+    restart: unless-stopped
+    entrypoint: ["php", "artisan", "queue:work", "redis", "--sleep=3", "--tries=3", "--timeout=60"]
+    env_file: .env
+    dns_opt:
+      - ndots:1
+    depends_on:
+      - redis
+    networks:
+      - closet_network
+
+networks:
+  closet_network:

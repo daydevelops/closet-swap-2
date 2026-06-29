@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\DeleteS3Files;
 use App\Models\ContactMessage;
 use App\Models\Report;
 use App\Models\User;
@@ -64,23 +65,24 @@ class AdminController extends Controller
 
         $request->validate(['reason' => 'required|string|max:500']);
 
+        $paths = ImageService::pathsForUser($user);
+
         $user->notify(new AccountDeletedNotification($request->reason));
 
         foreach ($user->clothingItems as $item) {
             foreach ($item->images as $image) {
-                ImageService::delete($image->path);
                 $image->delete();
             }
             $item->likes()->detach();
             $item->delete();
         }
 
-        if ($user->avatar_path) {
-            ImageService::delete($user->avatar_path);
-        }
-
         $user->tokens()->delete();
         $user->delete();
+
+        if ($paths) {
+            DeleteS3Files::dispatch($paths);
+        }
 
         return response()->json(['message' => 'User deleted successfully.']);
     }

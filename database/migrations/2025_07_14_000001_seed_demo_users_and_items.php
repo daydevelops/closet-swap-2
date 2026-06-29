@@ -44,6 +44,9 @@ return new class extends Migration
 
     public function up(): void
     {
+        if (env('APP_ENV') == 'production') {
+            return;
+        }
         // Pre-load type data once
         // Note: ci_types.category and ci_sizes.category don't exist yet at this point —
         // they're added in a later migration. Shoe sizes are also seeded later.
@@ -144,6 +147,9 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (env('APP_ENV') == 'production') {
+            return;
+        }
         $userIds = DB::table('users')
             ->where(function ($q) {
                 $q->where('email', 'like', '%@demo.test')
