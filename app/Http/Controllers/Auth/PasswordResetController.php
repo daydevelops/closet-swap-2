@@ -17,7 +17,7 @@ class PasswordResetController extends Controller
         // Validate the request
         $request->validate([
             'current_password' => 'required|string',
-            'new_password' => 'required|string|min:8|confirmed',
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
         // Get the currently authenticated user
@@ -29,7 +29,7 @@ class PasswordResetController extends Controller
         }
 
         // Update the user's password
-        $user->password = Hash::make($request->new_password);
+        $user->password = Hash::make($request->password);
         $user->save();
 
         $user->notify(new PasswordChangedNotification());

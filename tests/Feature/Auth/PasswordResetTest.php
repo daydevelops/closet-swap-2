@@ -17,8 +17,8 @@ it('can change password for authenticated user with correct current password', f
     // Act: Authenticate the user via Sanctum and attempt to change password
     $response = $this->actingAs($user)->postJson('/api/password/change', [
         'current_password' => 'currentPassword123',
-        'new_password' => 'newPassword123',
-        'new_password_confirmation' => 'newPassword123',
+        'password' => 'newPassword123',
+        'password_confirmation' => 'newPassword123',
     ]);
 
     // Assert: Check if the password was updated successfully
@@ -39,8 +39,8 @@ it('cannot change password for authenticated user with incorrect current passwor
     // Act: Authenticate the user via Sanctum and attempt to change password with wrong current password
     $response = $this->actingAs($user)->postJson('/api/password/change', [
         'current_password' => 'wrongPassword123',
-        'new_password' => 'newPassword123',
-        'new_password_confirmation' => 'newPassword123',
+        'password' => 'newPassword123',
+        'password_confirmation' => 'newPassword123',
     ]);
 
     // Assert: Ensure the response indicates the current password is incorrect
@@ -126,9 +126,9 @@ it('sends a notification email when password is changed', function () {
     ]);
 
     $this->actingAs($user)->postJson(route('password.change'), [
-        'current_password'          => 'currentPassword123',
-        'new_password'              => 'newPassword123',
-        'new_password_confirmation' => 'newPassword123',
+        'current_password' => 'currentPassword123',
+        'password'         => 'newPassword123',
+        'password_confirmation' => 'newPassword123',
     ])->assertOk();
 
     Notification::assertSentTo($user, PasswordChangedNotification::class);
